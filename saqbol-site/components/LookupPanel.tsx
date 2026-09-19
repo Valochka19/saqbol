@@ -48,13 +48,13 @@ export function LookupPanel() {
   return (
     <div className="grid gap-x-10 gap-y-10 lg:grid-cols-[1.4fr_1fr]">
       <div>
-        <h1 className="font-serif text-[34px] font-bold leading-[1.08] sm:text-[48px]">Переводите деньги незнакомцу? Сначала проверьте его</h1>
-        <p className="mt-3 max-w-[58ch] text-[16px] leading-relaxed text-ink-2">
+        <h1 className="font-serif text-[28px] font-bold leading-[1.08] sm:text-[48px]">Переводите деньги незнакомцу? Сначала проверьте его</h1>
+        <p className="mt-2 max-w-[58ch] text-[15px] leading-snug text-ink-2 sm:mt-3 sm:text-[16px] sm:leading-relaxed">
           Введите номер телефона, номер карты, ссылку или Telegram-аккаунт, который вам прислали. Мы скажем, жаловались ли
           на него другие люди.
         </p>
 
-        <label htmlFor="lookup" className="kicker mt-6 block">Номер, карта, ссылка или @аккаунт</label>
+        <label htmlFor="lookup" className="kicker mt-4 block sm:mt-6">Номер, карта, ссылка или @аккаунт</label>
         <div className="mt-1 flex flex-col gap-2 sm:flex-row">
           <input
             id="lookup"

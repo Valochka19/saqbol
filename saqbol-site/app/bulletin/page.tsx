@@ -71,7 +71,7 @@ ${top.map((k, i) => { const g = SCHEME_GUIDE[k]; return `<h3 style="font-size:16
     <div>
       <div className="no-print mb-8 grid gap-6 lg:grid-cols-[1.3fr_1fr]">
         <div>
-          <h1 className="font-serif text-[34px] font-bold leading-[1.08] sm:text-[44px]">Памятка для родителей и бабушек</h1>
+          <h1 className="font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Памятка для родителей и бабушек</h1>
           <p className="mt-3 max-w-[60ch] text-[16px] leading-relaxed text-ink-2">
             Чаще всего мошенники обманывают пожилых людей — тех, кто не пользуется ботами и сайтами. Распечатайте этот
             лист и повесьте у телефона или на холодильник. Схемы на нём обновляются сами: это три самых частых обмана

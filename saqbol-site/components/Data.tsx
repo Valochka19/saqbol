@@ -5,7 +5,7 @@ import { CATEGORY, fmtDate, fmtNum, fmtTime, INPUT_TYPE, KIND, VERDICT } from "@
 import type { FeedRow, IndicatorRow, Kind, Summary } from "@/lib/summary";
 
 /** Заголовок раздела: моноширинная подпись над жирной линейкой. */
-export function SectionHead({ title, note }: { title: string; note?: string }) {
+export function SectionHead({ title, note }: { title: string; note?: React.ReactNode }) {
   return (
     <div className="mb-3">
       <div className="rule-heavy" />
@@ -128,7 +128,7 @@ export function IndicatorTable({ rows, limit, filterable }: { rows: IndicatorRow
               key={k}
               onClick={() => setKind(k)}
               aria-pressed={kind === k}
-              className={`kicker border border-ink px-3 py-1 ${kind === k ? "bg-ink !text-paper" : "hover:bg-paper-2"}`}
+              className={`kicker min-h-[40px] border border-ink px-3 py-1 sm:min-h-0 ${kind === k ? "bg-ink !text-paper" : "hover:bg-paper-2"}`}
             >
               {k === "all" ? "Все" : KIND[k]}
             </button>
@@ -136,15 +136,15 @@ export function IndicatorTable({ rows, limit, filterable }: { rows: IndicatorRow
         </div>
       )}
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[560px] border-collapse text-[14px]">
+        <table className="w-full border-collapse text-[14px]">
           <thead>
             <tr className="kicker border-b border-ink text-left">
               <th className="py-2 pr-3 font-normal">Риск</th>
               <th className="py-2 pr-3 font-normal">Индикатор</th>
-              <th className="py-2 pr-3 font-normal">Схема</th>
-              <th className="py-2 pr-3 text-right font-normal">Заявителей</th>
-              <th className="py-2 pr-3 text-right font-normal">Впервые</th>
-              <th className="py-2 text-right font-normal">Статус</th>
+              <th className="hidden py-2 pr-3 font-normal sm:table-cell">Схема</th>
+              <th className="py-2 pr-3 text-right font-normal"><span className="sm:hidden">Жалоб</span><span className="hidden sm:inline">Заявителей</span></th>
+              <th className="hidden py-2 pr-3 text-right font-normal md:table-cell">Впервые</th>
+              <th className="hidden py-2 text-right font-normal md:table-cell">Статус</th>
             </tr>
           </thead>
           <tbody>
@@ -154,13 +154,14 @@ export function IndicatorTable({ rows, limit, filterable }: { rows: IndicatorRow
                   <RiskCell risk={r.risk} />
                 </td>
                 <td className="py-[7px] pr-3">
-                  <span className="num">{r.value}</span>
+                  <span className="num break-all">{r.value}</span>
                   <span className="kicker ml-2 !text-ink-3">{KIND[r.kind]}</span>
+                  <span className="block text-[12px] text-ink-2 sm:hidden">{CATEGORY[r.category] ?? r.category}</span>
                 </td>
-                <td className="py-[7px] pr-3 text-ink-2">{CATEGORY[r.category] ?? r.category}</td>
+                <td className="hidden py-[7px] pr-3 text-ink-2 sm:table-cell">{CATEGORY[r.category] ?? r.category}</td>
                 <td className="num py-[7px] pr-3 text-right">{r.reporters}</td>
-                <td className="num py-[7px] pr-3 text-right text-ink-2">{fmtDate(r.first_seen)}</td>
-                <td className="py-[7px] text-right text-[12px] text-ink-2">{STATUS[r.status]}</td>
+                <td className="num hidden py-[7px] pr-3 text-right text-ink-2 md:table-cell">{fmtDate(r.first_seen)}</td>
+                <td className="hidden py-[7px] text-right text-[12px] text-ink-2 md:table-cell">{STATUS[r.status]}</td>
               </tr>
             ))}
             {!shown.length && (

@@ -32,7 +32,7 @@ export default function Monitor() {
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
           <p className="kicker">Центр мониторинга · для антифрод-службы</p>
-          <h1 className="mt-2 font-serif text-[34px] font-bold leading-[1.08] sm:text-[44px]">Что рассылают прямо сейчас</h1>
+          <h1 className="mt-2 font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Что рассылают прямо сейчас</h1>
         </div>
         <p className="fine">Обновлено в {fmtTime(summary.updated_at)} · страница обновляется сама</p>
       </header>

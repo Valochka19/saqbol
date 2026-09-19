@@ -16,16 +16,17 @@ export default function Home() {
     <div className="space-y-12">
       {/* Главное действие — первым экраном. Два входа: есть сообщение или есть только номер. */}
       <section>
-        <div className="mb-6 grid grid-cols-2 border border-ink text-[13px] sm:inline-grid" role="tablist" aria-label="Что проверяем">
-          {([["message", "У меня сообщение"], ["lookup", "У меня номер, карта или ссылка"]] as const).map(([key, label]) => (
+        <div className="mb-4 grid grid-cols-2 border border-ink text-[12px] sm:mb-6 sm:inline-grid sm:text-[13px]" role="tablist" aria-label="Что проверяем">
+          {([["message", "У меня сообщение", "Сообщение"], ["lookup", "У меня номер, карта или ссылка", "Номер или ссылка"]] as const).map(([key, label, short]) => (
             <button
               key={key}
               role="tab"
               aria-selected={mode === key}
               onClick={() => setMode(key)}
-              className={`px-4 py-2 font-mono uppercase tracking-[0.08em] ${mode === key ? "bg-ink text-paper" : "hover:bg-paper-2"}`}
+              className={`min-h-[44px] px-3 py-2 font-mono uppercase tracking-[0.08em] sm:px-4 ${mode === key ? "bg-ink text-paper" : "hover:bg-paper-2"}`}
             >
-              {label}
+              <span className="sm:hidden">{short}</span>
+              <span className="hidden sm:inline">{label}</span>
             </button>
           ))}
         </div>

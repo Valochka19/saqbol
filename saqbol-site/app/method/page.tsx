@@ -99,7 +99,7 @@ export default function HowItWorks() {
     <div className="space-y-14">
       <header className="max-w-[860px]">
         <p className="kicker">Как это работает</p>
-        <h1 className="mt-2 font-serif text-[34px] font-bold leading-[1.08] sm:text-[48px]">
+        <h1 className="mt-2 font-serif text-[28px] font-bold leading-[1.08] sm:text-[48px]">
           Один человек засомневался — тысяча предупреждена
         </h1>
         <p className="mt-4 text-[17px] leading-relaxed text-ink-2">
@@ -111,7 +111,7 @@ export default function HowItWorks() {
 
       {/* Анатомия обмана */}
       <section>
-        <SectionHead title="Анатомия обмана" note="наведите на подчёркнутое" />
+        <SectionHead title="Анатомия обмана" note={<><span className="sm:hidden">нажмите на подчёркнутое</span><span className="hidden sm:inline">наведите на подчёркнутое</span></>} />
         <div className="mb-4 flex flex-wrap gap-1" role="tablist" aria-label="Пример сообщения">
           {SAMPLES.map((s) => (
             <button key={s.id} role="tab" aria-selected={active === s.id} onClick={() => { setActive(s.id); setFocus(null); }}

@@ -34,7 +34,7 @@ export default function Banks() {
     <div className="space-y-12">
       <header className="max-w-[820px]">
         <p className="kicker">Антифрод-службам банков</p>
-        <h1 className="mt-2 font-serif text-[34px] font-bold leading-[1.08] sm:text-[48px]">
+        <h1 className="mt-2 font-serif text-[28px] font-bold leading-[1.08] sm:text-[48px]">
           Дроп-счёт виден в день рассылки, а не после заявления пострадавшего
         </h1>
         <p className="mt-4 text-[17px] leading-relaxed text-ink-2">

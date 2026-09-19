@@ -66,27 +66,27 @@ export function CheckWidget() {
   return (
     <div className="grid gap-x-10 gap-y-10 lg:grid-cols-[1.4fr_1fr]">
       <div>
-        <h1 className="font-serif text-[34px] font-bold leading-[1.08] sm:text-[48px]">
+        <h1 className="font-serif text-[28px] font-bold leading-[1.08] sm:text-[48px]">
           Пришло странное сообщение? Проверьте, не мошенники ли это
         </h1>
-        <p className="mt-3 max-w-[58ch] text-[16px] leading-relaxed text-ink-2">
+        <p className="mt-2 max-w-[58ch] text-[15px] leading-snug text-ink-2 sm:mt-3 sm:text-[16px] sm:leading-relaxed">
           Вставьте текст SMS, сообщения из WhatsApp или Telegram, письма или ссылку — на русском или казахском. Через
           несколько секунд получите ответ с объяснением. Текст мы не сохраняем.
         </p>
 
-        <label htmlFor="msg" className="kicker mt-6 block">Текст сообщения</label>
+        <label htmlFor="msg" className="kicker mt-4 block sm:mt-6">Текст сообщения</label>
         <textarea
           id="msg"
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => (e.ctrlKey || e.metaKey) && e.key === "Enter" && submit()}
           maxLength={2000}
-          rows={7}
+          rows={5}
           placeholder="Например: «Ваша карта заблокирована, для разблокировки перейдите по ссылке…»"
           className="mt-1 w-full resize-y border border-ink bg-[#fbf9f3] p-4 font-serif text-[18px] leading-[1.5] placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal"
         />
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <span className="fine num">{text.length} / 2000 · Ctrl + Enter</span>
+          <span className="fine num">{text.length} / 2000<span className="hidden sm:inline"> · Ctrl + Enter</span></span>
           <button
             onClick={submit}
             disabled={!text.trim() || state === "waiting"}

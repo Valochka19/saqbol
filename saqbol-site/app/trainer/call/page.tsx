@@ -112,7 +112,7 @@ export default function Call() {
       {!sc && (
         <div className="mt-2 grid gap-x-10 gap-y-8 lg:grid-cols-[1.3fr_1fr]">
           <div>
-            <h1 className="font-serif text-[34px] font-bold leading-[1.08] sm:text-[44px]">Вам звонит мошенник. Сможете не поддаться?</h1>
+            <h1 className="font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Вам звонит мошенник. Сможете не поддаться?</h1>
             <p className="mt-3 max-w-[58ch] text-[16px] leading-relaxed text-ink-2">
               Нейросеть сыграет мошенника — так, как они разговаривают на самом деле: торопит, пугает, давит. Ваша задача —
               не отдать ему ни кода, ни денег. В конце будет разбор: какие приёмы он применял и где вы могли попасться.

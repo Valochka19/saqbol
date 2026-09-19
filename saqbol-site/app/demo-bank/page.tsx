@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useRef, useState, type ReactNode } from "react";
 import { SectionHead } from "@/components/Data";
 import { ask } from "@/lib/ask";
 import { CATEGORY, fmtNum } from "@/lib/labels";
@@ -40,7 +40,7 @@ function Phone({ label, caption, muted, children }: { label: string; caption: st
         <span className={`kicker ${muted ? "" : "!text-signal"}`}>{label}</span>
         <span className="block font-serif text-[19px] font-bold leading-tight">{caption}</span>
       </figcaption>
-      <div className={`h-[400px] overflow-hidden rounded-[34px] border-[9px] border-ink bg-white font-sans shadow-[7px_7px_0_var(--ink)] ${muted ? "grayscale" : ""}`}>
+      <div className={`h-[360px] overflow-hidden rounded-[34px] sm:h-[400px] border-[9px] border-ink bg-white font-sans shadow-[7px_7px_0_var(--ink)] ${muted ? "grayscale" : ""}`}>
         <div className="flex items-center justify-between px-5 pt-4 text-[11px] text-ink-3">
           <span className="font-semibold text-ink">Demo Bank</span>
           <span>макет</span>
@@ -85,6 +85,7 @@ export default function DemoBank() {
   const [decision, setDecision] = useState<Decision>("allow");
   const [choice, setChoice] = useState<Choice>(null);
   const [saved, setSaved] = useState(0);
+  const phones = useRef<HTMLElement>(null);
 
   function pick(id: string) {
     const s = STORIES.find((x) => x.id === id)!;
@@ -105,6 +106,8 @@ export default function DemoBank() {
     setStage("checking");
     setHit(null);
     setChoice(null);
+    // На телефоне пульт и макеты не помещаются на один экран — подводим взгляд к телефонам
+    if (window.innerWidth < 768) phones.current?.scrollIntoView({ behavior: "smooth", block: "start" });
 
     let item: Item | null = null;
     let failed = false;
@@ -135,8 +138,8 @@ export default function DemoBank() {
     <div className="space-y-7">
       <header className="max-w-[900px]">
         <p className="kicker">Защита платежа · демонстрация для банков</p>
-        <h1 className="mt-1 font-serif text-[34px] font-bold leading-[1.05] sm:text-[44px]">Один перевод — две концовки</h1>
-        <p className="mt-2 text-[16px] leading-snug text-ink-2">
+        <h1 className="mt-1 font-serif text-[28px] font-bold leading-[1.05] sm:text-[44px]">Один перевод — две концовки</h1>
+        <p className="mt-2 hidden text-[16px] leading-snug text-ink-2 sm:block">
           Деньги теряют не когда читают сообщение мошенника, а когда нажимают «Перевести». Справа банк перед отправкой
           спрашивает у SaqBol, жаловались ли на получателя.
         </p>
@@ -147,10 +150,10 @@ export default function DemoBank() {
         <div className="grid gap-x-8 gap-y-4 lg:grid-cols-[1.5fr_1fr]">
           <div>
             <p className="kicker">Ситуация</p>
-            <div className="mt-2 grid gap-2 sm:grid-cols-3">
+            <div className="-mx-4 mt-2 flex gap-2 overflow-x-auto px-4 pb-1 sm:mx-0 sm:grid sm:grid-cols-3 sm:overflow-visible sm:px-0 sm:pb-0">
               {STORIES.map((s) => (
                 <button key={s.id} onClick={() => pick(s.id)} aria-pressed={story === s.id}
-                  className={`border border-ink p-3 text-left ${story === s.id ? "bg-ink text-paper" : "hover:bg-paper-2"}`}>
+                  className={`w-[70%] shrink-0 border border-ink p-3 text-left sm:w-auto ${story === s.id ? "bg-ink text-paper" : "hover:bg-paper-2"}`}>
                   <span className="block font-serif text-[16px] font-bold leading-tight">{s.title}</span>
                   <span className={`mt-1 block text-[12px] leading-snug ${story === s.id ? "opacity-80" : "text-ink-2"}`}>{s.note}</span>
                 </button>
@@ -172,7 +175,7 @@ export default function DemoBank() {
         </div>
       </section>
 
-      <section className="grid gap-x-6 gap-y-10 md:grid-cols-2">
+      <section ref={phones} className="grid scroll-mt-3 gap-x-6 gap-y-8 md:grid-cols-2">
         <Phone label="Сегодня" caption="Банк без SaqBol" muted>
           {stage === "idle" ? <TransferForm recipient={recipient} amount={amount} busy={false} busyText="" /> : <Sent recipient={recipient} amount={amount} />}
         </Phone>

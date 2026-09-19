@@ -78,7 +78,7 @@ export default function Trainer() {
     <div className="grid gap-x-10 gap-y-10 lg:grid-cols-[1.6fr_1fr]">
       <div>
         <p className="kicker">Тренажёр</p>
-        <h1 className="mt-2 font-serif text-[34px] font-bold leading-[1.08] sm:text-[44px]">Мошенник или нет?</h1>
+        <h1 className="mt-2 font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Мошенник или нет?</h1>
 
         {!shift && (
           <div className="mt-4">
