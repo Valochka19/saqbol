@@ -21,6 +21,13 @@ service cloud.firestore {
         || (request.resource.data.keys().hasOnly(['lookup', 'created_at'])
           && request.resource.data.lookup is string
           && request.resource.data.lookup.size() > 0 && request.resource.data.lookup.size() <= 120)
+        // заявка на сертификат: имя и результаты тренажёра
+        || (request.resource.data.keys().hasOnly(['cert', 'created_at'])
+          && request.resource.data.cert is map
+          && request.resource.data.cert.keys().hasOnly(['name', 'cases', 'hard', 'calls'])
+          && request.resource.data.cert.name is string && request.resource.data.cert.name.size() <= 60
+          && request.resource.data.cert.cases is int && request.resource.data.cert.hard is int
+          && request.resource.data.cert.calls is int)
         // ход в тренажёре «Разговор с мошенником»
         || (request.resource.data.keys().hasOnly(['sim', 'created_at'])
           && request.resource.data.sim is map
@@ -32,6 +39,10 @@ service cloud.firestore {
     }
     // Ответ читается только по точному id (он случайный и известен лишь отправителю). Списком — нельзя.
     match /web_results/{id} {
+      allow get: if true;
+    }
+    // Сертификат проверяется по точному номеру (из QR-кода). Списком получить сертификаты нельзя.
+    match /certificates/{id} {
       allow get: if true;
     }
     // Всё остальное (индикаторы, жалобы, статистика) доступно только боту через Admin SDK.

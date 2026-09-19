@@ -24,7 +24,7 @@ export function MobileNav() {
             <ul className="divide-y divide-hair">
               {more.map((m, i) => (
                 <li key={m.href}>
-                  {i === NAV.length - 3 && <p className="fine pt-3">специалистам</p>}
+                  {m.href === PRO[0].href && <p className="fine pt-3">специалистам</p>}
                   <Link href={m.href} className={`flex min-h-[48px] items-center font-serif text-[19px] font-bold ${isActive(path, m.href) ? "text-signal" : ""}`}>
                     {m.label}
                   </Link>

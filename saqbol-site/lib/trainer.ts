@@ -12,11 +12,13 @@ export interface Progress {
   xp: number;
   bestStreak: number;
   shifts: number;
+  /** Сколько раз человек устоял в «Разговоре с мошенником» */
+  callsWon: number;
   /** id кейса -> отвечен ли верно в последний раз */
   cases: Record<number, boolean>;
 }
 
-export const EMPTY: Progress = { xp: 0, bestStreak: 0, shifts: 0, cases: {} };
+export const EMPTY: Progress = { xp: 0, bestStreak: 0, shifts: 0, callsWon: 0, cases: {} };
 const KEY = "saqbol.trainer.v1";
 
 export function loadProgress(): Progress {
@@ -80,4 +82,15 @@ export function pickShift(all: QuizCase[], p: Progress, size = 8): QuizCase[] {
   const fresh = shuffled.filter((c) => !p.cases[c.id]);
   const rest = shuffled.filter((c) => p.cases[c.id]);
   return [...fresh, ...rest].slice(0, size).sort(() => Math.random() - 0.5);
+}
+
+// Условия сертификата — те же, что проверяет сервер
+export const CERT_MIN_CASES = 24;
+export const CERT_MIN_CALLS = 1;
+
+export function certStats(p: Progress, all: QuizCase[]) {
+  const solved = all.filter((c) => p.cases[c.id]);
+  const cases = solved.length;
+  const hard = solved.filter((c) => c.hard).length;
+  return { cases, hard, calls: p.callsWon, eligible: cases >= CERT_MIN_CASES && p.callsWon >= CERT_MIN_CALLS };
 }

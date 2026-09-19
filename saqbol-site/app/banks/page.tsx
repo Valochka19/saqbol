@@ -95,6 +95,35 @@ export default function Banks() {
       </section>
 
       <section>
+        <SectionHead title="Обучение клиентов и сотрудников" note="вторая линия продукта" />
+        <div className="grid gap-x-10 gap-y-6 lg:grid-cols-[1.2fr_1fr]">
+          <div>
+            <h2 className="font-serif text-[24px] font-bold leading-snug sm:text-[28px]">Обученный клиент дешевле, чем возврат украденных денег</h2>
+            <p className="mt-3 text-[15px] leading-relaxed text-ink-2">
+              Тренажёр SaqBol — 40 ситуаций и разговор с «мошенником», которого играет нейросеть. Человек не читает памятку, а
+              сам оказывается под давлением и видит разбор своих ошибок. По итогам он получает именной сертификат с оценкой
+              устойчивости; подлинность проверяется по QR-коду.
+            </p>
+            <Link href="/certificate/" className="mt-4 inline-block border border-ink px-5 py-2 font-mono text-[12px] uppercase tracking-[0.1em] hover:bg-ink hover:text-paper">
+              Как выглядит сертификат →
+            </Link>
+          </div>
+          <dl className="space-y-4 text-[14px]">
+            {[
+              ["Банк — клиентам", "Курс в приложении банка: кешбэк или повышенный лимит тем, кто прошёл. Банк видит обезличенную статистику: на какие схемы его клиенты попадаются чаще всего."],
+              ["Компания — сотрудникам", "Бухгалтерия и кассиры — главная цель схем «звонок директора» и «письмо от контрагента». Сертификат — отметка о пройденном инструктаже."],
+              ["Вуз и колледж — студентам", "Зачёт по финансовой грамотности, который невозможно списать: каждый разговор с «мошенником» уникален."],
+            ].map(([t, d]) => (
+              <div key={t} className="border-t border-hair pt-3">
+                <dt className="font-serif text-[17px] font-bold">{t}</dt>
+                <dd className="mt-1 leading-relaxed text-ink-2">{d}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </section>
+
+      <section>
         <SectionHead title="Вопросы, которые задаст служба безопасности" />
         <dl className="grid gap-x-10 gap-y-6 lg:grid-cols-2">
           {[

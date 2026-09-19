@@ -49,6 +49,36 @@ async def _lookup(value: str) -> dict:
     return {"created_at": now, "items": items}
 
 
+TOTAL_CASES = 40
+HARD_CASES = 20
+CERT_MIN_CASES = 24  # верно разобрать не меньше 24 кейсов из 40
+CERT_MIN_CALLS = 1   # и устоять хотя бы в одном разговоре с мошенником
+
+
+def cert_score(cases: int, hard: int, calls: int) -> int:
+    """Оценка устойчивости, 0–100: кейсы — 55, трудные кейсы — 20, разговоры с мошенником — 25."""
+    return round(55 * min(cases, TOTAL_CASES) / TOTAL_CASES + 20 * min(hard, HARD_CASES) / HARD_CASES + 25 * min(calls, 2) / 2)
+
+
+async def _certificate(cert: dict) -> dict:
+    """Сертификат финансовой безопасности: считаем оценку, выдаём номер, сохраняем для проверки по QR."""
+    import secrets
+
+    now = datetime.now(timezone.utc)
+    name = " ".join(str(cert.get("name", "")).split())[:60]
+    cases, hard, calls = (max(0, int(cert.get(k, 0) or 0)) for k in ("cases", "hard", "calls"))
+    if len(name) < 2 or cases < CERT_MIN_CASES or calls < CERT_MIN_CALLS:
+        return {"created_at": now, "error": "not_eligible"}
+
+    score = cert_score(cases, hard, calls)
+    alphabet = "ABCDEFGHJKMNPQRSTUVWXYZ23456789"  # без похожих символов: O/0, I/1, L
+    cert_id = f"SB-{now.year}-" + "".join(secrets.choice(alphabet) for _ in range(6))
+    record = {"name": name, "score": score, "cases": min(cases, TOTAL_CASES), "hard": min(hard, HARD_CASES),
+              "calls": calls, "issued_at": now}
+    await store._get_db().collection("certificates").document(cert_id).set(record)
+    return {"created_at": now, "id": cert_id, **record}
+
+
 async def _simulate(sim: dict) -> dict:
     scenario = sim.get("scenario")
     if scenario not in simulator.SCENARIOS:
@@ -72,6 +102,9 @@ async def _handle(doc_id: str, data: dict) -> None:
 
         if "lookup" in data:
             await result_ref.set(await _lookup(str(data["lookup"])[:120]))
+            return
+        if "cert" in data:
+            await result_ref.set(await _certificate(data["cert"]))
             return
         if "sim" in data:
             await result_ref.set(await _simulate(data["sim"]))

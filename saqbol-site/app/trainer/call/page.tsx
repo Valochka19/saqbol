@@ -91,7 +91,8 @@ export default function Call() {
       if (t.state !== "ongoing") {
         setEnd(t);
         const p = loadProgress();
-        saveProgress({ ...p, xp: p.xp + (t.state === "victim_won" ? 30 : 5) });
+        const won = t.state === "victim_won";
+        saveProgress({ ...p, xp: p.xp + (won ? 30 : 5), callsWon: p.callsWon + (won ? 1 : 0) });
       }
     } catch (e) {
       setError(ASK_ERRORS[(e as Error).message] ?? ASK_ERRORS.failed);

@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { SectionHead } from "@/components/Data";
-import { EMPTY, loadProgress, pickShift, QUESTS, rankOf, saveProgress, xpFor, type Progress, type QuizCase } from "@/lib/trainer";
+import { CERT_MIN_CASES, certStats, EMPTY, loadProgress, pickShift, QUESTS, rankOf, saveProgress, xpFor, type Progress, type QuizCase } from "@/lib/trainer";
 
 type Answer = { case: QuizCase; saidScam: boolean; right: boolean; gained: number };
 
@@ -225,6 +225,19 @@ export default function Trainer() {
             </div>
           ))}
         </dl>
+
+        <div className="mt-8 border border-ink p-4">
+          <p className="kicker !text-signal">Сертификат</p>
+          <p className="mt-1 font-serif text-[19px] font-bold leading-snug">
+            {certStats(progress, all).eligible ? "Сертификат готов к выдаче" : "Получите именной сертификат"}
+          </p>
+          <p className="mt-1 text-[13px] leading-snug text-ink-2">
+            Нужно верно разобрать {CERT_MIN_CASES} ситуаций из 40 и один раз устоять в разговоре с мошенником. Сейчас: {solved} и {progress.callsWon}.
+          </p>
+          <Link href="/certificate/" className="mt-3 inline-block bg-ink px-4 py-2 font-mono text-[12px] uppercase tracking-[0.08em] text-paper hover:bg-signal">
+            {certStats(progress, all).eligible ? "Получить" : "Подробнее"}
+          </Link>
+        </div>
 
         <div className="mt-8">
           <SectionHead title="Дела в производстве" />

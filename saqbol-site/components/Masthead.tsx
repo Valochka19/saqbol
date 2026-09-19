@@ -7,9 +7,10 @@ import { issueNumber } from "@/lib/labels";
 
 // Слева — то, что нужно любому человеку. Справа, мельче — разделы для специалистов.
 export const NAV = [
-  { href: "/", label: "Проверить сообщение", short: "Проверка" },
+  { href: "/", label: "Проверить", short: "Проверка" },
   { href: "/trainer/", label: "Тренажёр", short: "Тренажёр" },
-  { href: "/bulletin/", label: "Памятка родителям", short: "Памятка" },
+  { href: "/bulletin/", label: "Памятка", short: "Памятка" },
+  { href: "/certificate/", label: "Сертификат", short: "Сертификат" },
   { href: "/method/", label: "Как это работает", short: "Как это работает" },
 ];
 export const PRO = [
@@ -64,7 +65,7 @@ export function Masthead() {
           </p>
         </div>
         <div className="rule" />
-        <nav className="flex items-center gap-x-1 overflow-x-auto py-1 text-[13px]" aria-label="Разделы">
+        <nav className="flex flex-wrap items-center gap-x-0.5 py-1 text-[13px]" aria-label="Разделы">
           {[...NAV, null, ...PRO].map((item) => {
             if (!item) return <span key="gap" className="fine ml-auto whitespace-nowrap pr-2">специалистам:</span>;
             const pro = PRO.some((p) => p.href === item.href);
@@ -74,7 +75,7 @@ export function Masthead() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`whitespace-nowrap px-3 py-2 font-mono uppercase tracking-[0.1em] transition-colors ${
+                className={`whitespace-nowrap px-2.5 py-2 font-mono uppercase tracking-[0.08em] transition-colors ${
                   active ? "bg-ink text-paper" : pro ? "text-ink-2 hover:bg-paper-2" : "text-ink hover:bg-paper-2"
                 } ${pro ? "text-[12px]" : ""}`}
               >

@@ -113,8 +113,12 @@ body {
 /* Печать памятки: на бумаге остаётся только сам лист */
 @media print {
   @page { size: A4; margin: 12mm; }
+  @page cert { size: A4 landscape; margin: 10mm; }
+  .cert { page: cert; }
   html, body { background: #fff !important; }
   header, footer, .no-print { display: none !important; }
   main { padding: 0 !important; }
   .sheet { border: none !important; padding: 0 !important; max-width: none !important; }
+  .cert { break-inside: avoid; }
+  body:has(.cert) { zoom: 0.92; }
 }
