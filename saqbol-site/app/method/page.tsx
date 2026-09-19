@@ -1,159 +1,212 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useState } from "react";
 import { SectionHead } from "@/components/Data";
 
-interface Metrics {
-  mode: string;
-  model: string | null;
-  total: number;
-  tp: number;
-  fn: number;
-  fp: number;
-  tn: number;
-  accuracy: number;
-  precision: number;
-  recall: number;
-  f1: number;
-  accuracy_hard?: number;
-}
-interface Run {
-  metrics: Metrics;
-  results: { id: number; label: string; predicted: string; text: string; hard?: boolean }[];
+type Seg = { t: string; n?: number };
+interface Sample {
+  id: string;
+  tab: string;
+  from: string;
+  good: boolean;
+  verdict: string;
+  segs: Seg[];
+  notes: { title: string; text: string }[];
 }
 
-const pct = (x: number) => `${(x * 100).toFixed(1)}%`;
-
-const TRL: [string, string, "done" | "now" | "next"][] = [
-  ["TRL 3", "Проверка идеи: правила + модель на размеченных примерах", "done"],
-  ["TRL 4", "Рабочий прототип: бот, сайт, общая база, метрики на 90 сообщениях", "done"],
-  ["TRL 5", "Пилот на реальных пользователях: датасет из настоящих сообщений, скриншоты и голосовые", "now"],
-  ["TRL 6", "Пилот с банком-партнёром: фид по API, обратная связь аналитиков, модель в контуре банка", "next"],
-  ["TRL 7", "Несколько банков в общем обмене индикаторами, интеграция с антифрод-системами", "next"],
+// Разобранные сообщения: фразы с пометкой n ссылаются на пояснение с тем же номером
+const SAMPLES: Sample[] = [
+  {
+    id: "bank",
+    tab: "«Карта заблокирована»",
+    from: "SMS с незнакомого номера",
+    good: false,
+    verdict: "Мошенничество",
+    segs: [
+      { t: "Уважаемый клиент! Ваша карта Kaspi Gold " },
+      { t: "заблокирована из-за подозрительной активности", n: 1 },
+      { t: ". Для разблокировки " },
+      { t: "в течение 2 часов", n: 2 },
+      { t: " перейдите по ссылке: " },
+      { t: "kaspi-secure.xyz/unlock", n: 3 },
+      { t: " и " },
+      { t: "введите код из SMS", n: 4 },
+      { t: "." },
+    ],
+    notes: [
+      { title: "Пугают", text: "Сообщение начинается с беды. Испуганный человек не проверяет, а действует — на это и расчёт." },
+      { title: "Торопят", text: "Срок «2 часа» нужен, чтобы вы не успели позвонить в банк или спросить близких." },
+      { title: "Поддельный адрес", text: "Настоящий сайт — kaspi.kz. Здесь чужой домен, в который вставили слово kaspi. Это SaqBol проверяет автоматически." },
+      { title: "Просят код", text: "Банк никогда не просит код из SMS. Код — это ваша подпись под переводом денег." },
+    ],
+  },
+  {
+    id: "mom",
+    tab: "«Мама, это я»",
+    from: "WhatsApp, незнакомый номер",
+    good: false,
+    verdict: "Мошенничество",
+    segs: [
+      { t: "Мама, это я, " },
+      { t: "пишу с чужого номера, телефон разбила", n: 1 },
+      { t: ". Нужно оплатить ремонт, переведи 45000 на " },
+      { t: "этот каспи 8 705 111 22 33", n: 2 },
+      { t: ", мастер ждёт. " },
+      { t: "Позвонить не могу, микрофон не работает", n: 3 },
+    ],
+    notes: [
+      { title: "Объясняют чужой номер", text: "В сообщении нет ни ссылок, ни слова «срочно» — правила здесь бессильны. Смысл понимает нейросеть: незнакомый номер выдаёт себя за близкого." },
+      { title: "Деньги — третьему лицу", text: "Перевести просят не «дочери», а на чужую карту. Этот номер SaqBol запомнит — и предупредит следующего, кому он придёт." },
+      { title: "Запрещают проверить", text: "Главный признак. Один звонок разрушил бы обман, поэтому заранее придумана причина не звонить." },
+    ],
+  },
+  {
+    id: "real",
+    tab: "Настоящее сообщение банка",
+    from: "SMS от Kaspi.kz",
+    good: true,
+    verdict: "Не похоже на обман",
+    segs: [
+      { t: "Kaspi.kz: " },
+      { t: "Покупка 4 500 ₸ в Magnum", n: 1 },
+      { t: ". Доступно 128 340 ₸. " },
+      { t: "Если это не вы, позвоните 9999", n: 2 },
+      { t: "." },
+    ],
+    notes: [
+      { title: "Сообщает, а не просит", text: "Банк рассказывает, что произошло. Он не просит ничего сделать, ввести или назвать." },
+      { title: "Вы звоните сами", text: "Нет ссылки и нет «мы вам перезвоним». Предлагают позвонить самому — по короткому официальному номеру." },
+    ],
+  },
 ];
 
-export default function Method() {
-  const [rules, setRules] = useState<Run | null>(null);
-  const [llm, setLlm] = useState<Run | null>(null);
+const TIMELINE: [string, string, string][] = [
+  ["09:12", "Первое обращение", "Айгуль из Караганды получила «Мама, переведи 45 000» и засомневалась. Проверила в SaqBol — обман. Номер 8 705 *** 22 33 попал в базу."],
+  ["09:40", "Второе", "То же сообщение пришло пенсионеру в Астане. SaqBol отвечает уже увереннее: «на этот номер сегодня жаловались»."],
+  ["11:05", "Третье", "Три разных человека за два часа. Оценка риска номера поднимается до 65 из 99 — это уже не случайность, а рассылка."],
+  ["11:06", "Банк получает сигнал", "Номер появляется у антифрод-службы банка. Заявлений в полицию ещё нет — пострадавших тоже."],
+  ["13:30", "Перевод остановлен", "Четвёртая мама не засомневалась и открыла приложение банка. Банк показал: «На этого получателя пожаловались 3 человека». 45 000 ₸ остались у неё."],
+];
 
-  useEffect(() => {
-    fetch("/metrics_rules.json").then((r) => r.json()).then(setRules);
-    fetch("/metrics_rules_llm.json").then((r) => r.json()).then(setLlm);
-  }, []);
-
-  const rows: [string, (m: Metrics) => string][] = [
-    ["Accuracy — доля верных решений", (m) => pct(m.accuracy)],
-    ["Precision — из тревог настоящих", (m) => pct(m.precision)],
-    ["Recall — пойманного скама", (m) => pct(m.recall)],
-    ["F1", (m) => m.f1.toFixed(3)],
-    ["На трудных кейсах", (m) => (m.accuracy_hard === undefined ? "—" : pct(m.accuracy_hard))],
-    ["Пропущено скама", (m) => `${m.fn} из ${m.tp + m.fn}`],
-    ["Ложных тревог", (m) => `${m.fp} из ${m.fp + m.tn}`],
-  ];
-  const mistakes = llm?.results.filter((r) => (r.label === "scam") !== (r.predicted !== "safe")) ?? [];
+export default function HowItWorks() {
+  const [active, setActive] = useState(SAMPLES[0].id);
+  const [focus, setFocus] = useState<number | null>(null);
+  const sample = SAMPLES.find((s) => s.id === active)!;
+  const ink = sample.good ? "var(--ok)" : "var(--signal)";
 
   return (
-    <div className="space-y-12">
-      <header className="max-w-[820px]">
-        <p className="kicker">Методика и результаты</p>
-        <h1 className="mt-2 font-serif text-[34px] font-bold leading-[1.08] sm:text-[48px]">Как устроен SaqBol и насколько он точен</h1>
+    <div className="space-y-14">
+      <header className="max-w-[860px]">
+        <p className="kicker">Как это работает</p>
+        <h1 className="mt-2 font-serif text-[34px] font-bold leading-[1.08] sm:text-[48px]">
+          Один человек засомневался — тысяча предупреждена
+        </h1>
+        <p className="mt-4 text-[17px] leading-relaxed text-ink-2">
+          Мошенник рассылает одно и то же сообщение тысячам людей. Кто-то из них обязательно засомневается и проверит его в
+          SaqBol. В этот момент мы узнаём номер телефона или карты мошенника — и предупреждаем всех остальных, включая банк,
+          который может остановить перевод.
+        </p>
       </header>
 
+      {/* Анатомия обмана */}
       <section>
-        <SectionHead title="Архитектура" />
-        <ol className="grid gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
-          {[
-            ["Вход", "Telegram-бот и сайт. Текст на русском, казахском или вперемешку."],
-            ["Слой 1 — правила", "Поддельные домены под Kaspi, Halyk, eGov; просьбы назвать код; «безопасный счёт»; удалённый доступ. Работает без сети, каждое срабатывание объяснимо."],
-            ["Слой 2 — модель", "Языковая модель получает текст и результат правил, возвращает строго структурированное заключение: вердикт, схема, признаки, совет. Недоступна — отвечают правила."],
-            ["Общая база", "Из мошеннических сообщений извлекаются телефоны, карты, домены. Хранится индикатор и число независимых заявителей, текст — нет."],
-          ].map(([title, text], i) => (
-            <li key={title} className={`pr-6 ${i ? "lg:border-l lg:border-hair lg:pl-6" : ""}`}>
-              <span className="num text-[13px] text-ink-3">{String(i + 1).padStart(2, "0")}</span>
-              <h3 className="mt-1 font-serif text-[19px] font-bold">{title}</h3>
-              <p className="mt-1 text-[14px] leading-relaxed text-ink-2">{text}</p>
-            </li>
+        <SectionHead title="Анатомия обмана" note="наведите на подчёркнутое" />
+        <div className="mb-4 flex flex-wrap gap-1" role="tablist" aria-label="Пример сообщения">
+          {SAMPLES.map((s) => (
+            <button key={s.id} role="tab" aria-selected={active === s.id} onClick={() => { setActive(s.id); setFocus(null); }}
+              className={`border border-ink px-3 py-2 font-mono text-[12px] uppercase tracking-[0.06em] ${active === s.id ? "bg-ink text-paper" : "hover:bg-paper-2"}`}>
+              {s.tab}
+            </button>
           ))}
-        </ol>
-        <p className="mt-6 max-w-[80ch] text-[14px] leading-relaxed text-ink-2">
-          Страховка от ошибки модели: поддельный домен банка не может получить вердикт «чисто», что бы ни ответила
-          модель. И наоборот — сообщение без тревожных признаков, но с номером, на который уже жаловались двое и более,
-          поднимается до «подозрительно».
-        </p>
-      </section>
+        </div>
 
-      <section className="grid gap-x-10 gap-y-10 lg:grid-cols-[1.2fr_1fr]">
-        <div>
-          <SectionHead title="Метрики" note={llm ? `${llm.metrics.total} размеченных сообщений` : undefined} />
-          {rules && llm ? (
-            <table className="w-full text-[14px]">
-              <thead>
-                <tr className="kicker border-b border-ink text-left">
-                  <th className="py-2 font-normal">Показатель</th>
-                  <th className="py-2 text-right font-normal">Только правила</th>
-                  <th className="py-2 text-right font-normal">Правила + модель</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(([label, get]) => (
-                  <tr key={label} className="border-b border-hair">
-                    <td className="py-[7px]">{label}</td>
-                    <td className="num py-[7px] text-right text-ink-2">{get(rules.metrics)}</td>
-                    <td className="num py-[7px] text-right font-medium">{get(llm.metrics)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          ) : (
-            <p className="kicker">Загружаем результаты прогона…</p>
-          )}
-          <p className="fine mt-3">Модель: {llm?.metrics.model ?? "…"} · «сработал» = вердикт «мошенничество» или «подозрительно»</p>
-        </div>
-        <div>
-          <SectionHead title="Где система ошибается" />
-          {mistakes.length ? (
-            <ul className="space-y-3 text-[14px] leading-snug">
-              {mistakes.map((m) => (
-                <li key={m.id} className="border-l-[3px] border-signal pl-3">
-                  <span className="kicker !text-signal">{m.label === "scam" ? "Пропуск" : "Ложная тревога"}</span>
-                  <p className="mt-1 font-serif text-[16px]">«{m.text}»</p>
-                </li>
-              ))}
-            </ul>
-          ) : (
-            <p className="text-[14px] text-ink-3">Ошибок в последнем прогоне нет.</p>
-          )}
-          <p className="mt-3 text-[13px] leading-relaxed text-ink-2">
-            Просьба занять денег от знакомого неотличима по тексту от взломанного аккаунта — здесь осторожность системы
-            оправдана: совет «перезвоните человеку» верен в обоих случаях.
-          </p>
-        </div>
-      </section>
+        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[1.15fr_1fr]">
+          {/* Вырезка с пометками редакторской ручкой */}
+          <div className="relative border border-ink bg-[#fbf9f3] p-6 sm:p-8" style={{ transform: "rotate(-0.4deg)" }}>
+            <p className="kicker border-b border-hair pb-2">{sample.from}</p>
+            <p className="mt-5 font-serif text-[21px] leading-[1.9] sm:text-[24px]">
+              {sample.segs.map((seg, i) =>
+                seg.n ? (
+                  <mark key={i} tabIndex={0} onMouseEnter={() => setFocus(seg.n!)} onMouseLeave={() => setFocus(null)} onFocus={() => setFocus(seg.n!)} onBlur={() => setFocus(null)}
+                    className="cursor-help bg-transparent text-inherit outline-none"
+                    style={{ textDecoration: `underline wavy ${ink}`, textDecorationThickness: "2px", textUnderlineOffset: "6px", background: focus === seg.n ? `color-mix(in srgb, ${ink} 16%, transparent)` : undefined }}>
+                    {seg.t}
+                    <sup className="num ml-[2px] text-[12px] font-bold" style={{ color: ink }}>{seg.n}</sup>
+                  </mark>
+                ) : (
+                  <span key={i}>{seg.t}</span>
+                ),
+              )}
+            </p>
+            <span key={sample.id} className="stamp stamp-in absolute -bottom-4 right-5 bg-[#fbf9f3] text-[14px]" style={{ color: ink }}>{sample.verdict}</span>
+          </div>
 
-      <section className="grid gap-x-10 gap-y-10 lg:grid-cols-2">
-        <div>
-          <SectionHead title="Датасет" />
-          <ul className="space-y-2 text-[14px] leading-relaxed text-ink-2">
-            <li>— 90 сообщений: 45 мошеннических и 45 обычных; русский, казахский, смешанная речь, транслит.</li>
-            <li>— 30 из них намеренно трудные: скам без ссылок и тревожных слов, домены-опечатки (kaspl.kz), и наоборот — настоящие уведомления о долге, реклама займов, курьер с кодом выдачи.</li>
-            <li>— Примеры составлены по типовым схемам, распространённым в Казахстане. Следующий шаг — пополнение реальными сообщениями от пользователей пилота.</li>
-            <li>— Правила под датасет не подгонялись: ошибки слоя правил оставлены как есть, чтобы был виден вклад модели.</li>
-          </ul>
-        </div>
-        <div>
-          <SectionHead title="План доработки" note="уровни готовности технологии" />
-          <ol>
-            {TRL.map(([level, text, state]) => (
-              <li key={level} className="grid grid-cols-[64px_1fr_auto] items-baseline gap-3 border-b border-hair py-[7px] text-[14px]">
-                <span className="num font-medium">{level}</span>
-                <span className={state === "next" ? "text-ink-2" : ""}>{text}</span>
-                <span className={`kicker ${state === "now" ? "!text-signal" : state === "done" ? "!text-ok" : ""}`}>
-                  {state === "done" ? "пройден" : state === "now" ? "сейчас" : "далее"}
-                </span>
+          <ol className="space-y-4">
+            {sample.notes.map((note, i) => (
+              <li key={note.title} onMouseEnter={() => setFocus(i + 1)} onMouseLeave={() => setFocus(null)}
+                className="grid grid-cols-[34px_1fr] gap-x-2 border-l-[3px] pl-3 transition-colors"
+                style={{ borderColor: focus === i + 1 ? ink : "var(--hair)" }}>
+                <span className="num text-[22px] font-bold leading-none" style={{ color: ink }}>{i + 1}</span>
+                <div>
+                  <p className="font-serif text-[19px] font-bold leading-tight">{note.title}</p>
+                  <p className="mt-1 text-[14px] leading-relaxed text-ink-2">{note.text}</p>
+                </div>
               </li>
             ))}
           </ol>
         </div>
+        <p className="mt-8 max-w-[78ch] text-[15px] leading-relaxed text-ink-2">
+          SaqBol смотрит на сообщение дважды. Сначала — простые проверки, которые нельзя обмануть формулировкой: поддельный
+          адрес сайта, просьба назвать код. Потом нейросеть читает смысл — так находится обман, в котором нет ни одного
+          «тревожного» слова. Ответ вы получаете обычными словами: что не так и что делать.
+        </p>
+      </section>
+
+      {/* Путь одного номера */}
+      <section>
+        <SectionHead title="Путь одного номера" note="пример одного дня" />
+        <ol className="relative">
+          {TIMELINE.map(([time, title, text], i) => {
+            const last = i === TIMELINE.length - 1;
+            return (
+              <li key={time} className="grid grid-cols-[64px_22px_1fr] gap-x-3 sm:grid-cols-[84px_22px_1fr]">
+                <span className="num pt-[2px] text-right text-[17px] font-medium sm:text-[20px]">{time}</span>
+                <span className="relative flex justify-center">
+                  <span className={`mt-[7px] h-[12px] w-[12px] shrink-0 border-2 border-ink ${last ? "bg-ok border-ok" : i === 0 ? "bg-signal border-signal" : "bg-paper"}`} />
+                  {!last && <span className="absolute bottom-0 top-[22px] w-[2px] bg-ink" />}
+                </span>
+                <div className={last ? "pb-0" : "pb-7"}>
+                  <p className={`font-serif text-[20px] font-bold leading-tight ${last ? "text-ok" : ""}`}>{title}</p>
+                  <p className="mt-1 max-w-[70ch] text-[15px] leading-relaxed text-ink-2">{text}</p>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+        <p className="mt-6 max-w-[78ch] text-[15px] leading-relaxed text-ink-2">
+          Сегодня банк узнаёт о счёте мошенника только после заявления пострадавшего — когда деньги уже ушли. Здесь сигнал
+          приходит от тех, кто <b className="text-ink">не</b> попался. Поэтому он приходит раньше.{" "}
+          <Link href="/demo-bank/" className="underline underline-offset-4 hover:text-signal">Посмотреть, как банк останавливает перевод →</Link>
+        </p>
+      </section>
+
+      {/* Честно о границах */}
+      <section>
+        <SectionHead title="Что важно знать" />
+        <dl className="grid gap-x-10 gap-y-6 sm:grid-cols-2 lg:grid-cols-4">
+          {[
+            ["Мы не храним ваши сообщения", "Текст нужен на несколько секунд проверки. В базе остаются только номера и сайты мошенников."],
+            ["Жалоба — не приговор", "Одна жалоба ничего не решает. Нужны разные люди, и каждое их сообщение должно быть признано обманом."],
+            ["Один человек — один голос", "Сто жалоб с одного аккаунта считаются как одна. Накрутить номер честного человека не получится."],
+            ["Система может ошибаться", "На 90 проверочных сообщениях она ошиблась один раз — приняла просьбу друга занять денег за взлом аккаунта. Поэтому совет всегда один: перезвоните сами."],
+          ].map(([t, d]) => (
+            <div key={t}>
+              <dt className="font-serif text-[18px] font-bold leading-snug">{t}</dt>
+              <dd className="mt-1 text-[14px] leading-relaxed text-ink-2">{d}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
     </div>
   );

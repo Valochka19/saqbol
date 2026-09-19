@@ -10,12 +10,12 @@ const NAV = [
   { href: "/", label: "Проверить сообщение" },
   { href: "/trainer/", label: "Тренажёр" },
   { href: "/bulletin/", label: "Памятка родителям" },
+  { href: "/method/", label: "Как это работает" },
 ];
 const PRO = [
   { href: "/monitor/", label: "Мониторинг" },
   { href: "/demo-bank/", label: "Демо-банк" },
   { href: "/banks/", label: "Банкам" },
-  { href: "/method/", label: "Методика" },
 ];
 
 export function Masthead() {
