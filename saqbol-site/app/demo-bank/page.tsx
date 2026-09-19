@@ -17,7 +17,6 @@ interface Item {
 type Decision = "allow" | "warn" | "block";
 type Stage = "idle" | "checking" | "decided";
 type Choice = null | "cancelled" | "delayed" | "forced";
-type LogLine = { kind: "out" | "in" | "note"; text: string };
 
 // Пороги решения. Банк настраивает их под свою политику риска.
 const BLOCK_FROM = 45;
@@ -85,7 +84,6 @@ export default function DemoBank() {
   const [hit, setHit] = useState<Item | null>(null);
   const [decision, setDecision] = useState<Decision>("allow");
   const [choice, setChoice] = useState<Choice>(null);
-  const [log, setLog] = useState<LogLine[]>([]);
   const [saved, setSaved] = useState(0);
 
   function pick(id: string) {
@@ -100,7 +98,6 @@ export default function DemoBank() {
     setStage("idle");
     setHit(null);
     setChoice(null);
-    setLog([]);
   }
 
   async function transfer() {
@@ -108,8 +105,6 @@ export default function DemoBank() {
     setStage("checking");
     setHit(null);
     setChoice(null);
-    const t0 = performance.now();
-    setLog([{ kind: "out", text: `Банк → SaqBol\nGET /v1/check?recipient=${recipient.trim()}` }]);
 
     let item: Item | null = null;
     let failed = false;
@@ -119,26 +114,17 @@ export default function DemoBank() {
     } catch {
       failed = true;
     }
-    const ms = Math.round(performance.now() - t0);
     // Если сервис не ответил, банк не останавливает платежи: защита добавляется, а не ломает переводы
     const d: Decision = failed || !item?.found ? "allow" : item.risk >= BLOCK_FROM ? "block" : "warn";
 
     setHit(item?.found ? item : null);
     setDecision(d);
-    setLog((l) => [
-      ...l,
-      failed
-        ? { kind: "in", text: "SaqBol не ответил за 15 с" }
-        : { kind: "in", text: `SaqBol → Банк · ${ms} мс\n${JSON.stringify(item?.found ? { found: true, risk: item.risk, reporters: item.reporters, category: item.category } : { found: false })}` },
-      { kind: "note", text: failed ? "Решение: пропустить — сервис недоступен, платежи не останавливаем" : d === "block" ? `Решение: ОСТАНОВИТЬ — риск ${item!.risk} ≥ ${BLOCK_FROM}` : d === "warn" ? `Решение: ПРЕДУПРЕДИТЬ — жалобы есть, риск ${item!.risk} ниже ${BLOCK_FROM}` : "Решение: пропустить — жалоб нет" },
-    ]);
     setStage("decided");
   }
 
   function choose(c: Exclude<Choice, null>) {
     setChoice(c);
     if (c !== "forced") setSaved((s) => s + amount);
-    setLog((l) => [...l, { kind: "note", text: c === "cancelled" ? "Клиент отменил перевод — деньги сохранены" : c === "delayed" ? "Перевод отложен на 1 час — «период охлаждения»" : "Клиент настоял на переводе — банк фиксирует, что предупреждал" }]);
   }
 
   const decided = stage === "decided";
@@ -240,45 +226,25 @@ export default function DemoBank() {
         <div className="rule" />
       </section>
 
-      <section className="grid gap-x-10 gap-y-10 lg:grid-cols-[1.2fr_1fr]">
-        <div>
-          <SectionHead title="Что происходит за кадром" note="обмен между банком и SaqBol" />
-          {log.length === 0 ? (
-            <p className="text-[14px] text-ink-3">Здесь появится запрос банка, ответ сервиса и принятое решение.</p>
-          ) : (
-            <ol className="space-y-2">
-              {log.map((l, i) => (
-                <li key={i} className={`row-in border-l-[3px] pl-3 ${l.kind === "note" ? "border-signal" : "border-ink"}`}>
-                  <pre className={`whitespace-pre-wrap break-all font-mono text-[12.5px] leading-[1.5] ${l.kind === "note" ? "font-medium text-ink" : "text-ink-2"}`}>{l.text}</pre>
-                </li>
-              ))}
-            </ol>
-          )}
-        </div>
-        <div>
-          <SectionHead title="Три решения банка" />
-          <dl className="space-y-3 text-[14px]">
-            {[
-              ["Пропустить", "Жалоб нет. Клиент ничего не замечает."],
-              ["Предупредить", "Жалобы есть, риск невысокий. Клиент видит предупреждение и решает сам."],
-              ["Остановить", `Риск от ${BLOCK_FROM}. Отмена или «период охлаждения» на час.`],
-            ].map(([t, d]) => (
-              <div key={t} className="grid grid-cols-[120px_1fr] gap-3 border-b border-hair pb-3">
-                <dt className="font-serif text-[16px] font-bold">{t}</dt>
-                <dd className="leading-snug text-ink-2">{d}</dd>
-              </div>
-            ))}
-          </dl>
-          <p className="mt-4 text-[13px] leading-relaxed text-ink-2">
-            Пороги банк настраивает сам. Если SaqBol недоступен, перевод проходит как обычно: защита добавляется к
-            платежам, но не может их остановить.
-          </p>
-        </div>
+      <section>
+        <SectionHead title="Что делает банк" />
+        <dl className="grid gap-x-8 gap-y-5 sm:grid-cols-3">
+          {[
+            ["Пропускает", "На получателя никто не жаловался. Клиент ничего не замечает, перевод уходит как обычно."],
+            ["Предупреждает", "Жалобы есть, но их мало. Клиент видит предупреждение и решает сам."],
+            ["Останавливает", "Жалоб много. Перевод не уходит: можно отменить его или отложить на час."],
+          ].map(([t, d]) => (
+            <div key={t}>
+              <dt className="font-serif text-[19px] font-bold">{t}</dt>
+              <dd className="mt-1 text-[14px] leading-relaxed text-ink-2">{d}</dd>
+            </div>
+          ))}
+        </dl>
       </section>
 
       <p className="fine">
-        Макет: деньги никуда не переводятся, это не приложение реального банка. Проверка получателя — настоящая, по живой
-        базе SaqBol. В промышленной версии это серверный вызов API с ключом банка.
+        Это макет: деньги никуда не переводятся, и это не приложение реального банка. А вот проверка получателя
+        настоящая — по живой базе SaqBol.
       </p>
     </div>
   );
