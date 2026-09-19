@@ -1,0 +1,35 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Сводка для сайта: только агрегаты и замаскированные номера.
+    match /public/{doc} {
+      allow read: if true;
+    }
+    // Очередь веб-проверок: сайт может только положить текст. Прочитать чужой запрос нельзя,
+    // бот удаляет его сразу после обработки.
+    match /web_requests/{id} {
+      allow create: if request.resource.data.created_at == request.time && (
+        // проверка сообщения
+        (request.resource.data.keys().hasOnly(['text', 'created_at'])
+          && request.resource.data.text is string
+          && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000)
+        // проверка получателя: номер, карта, ссылка
+        || (request.resource.data.keys().hasOnly(['lookup', 'created_at'])
+          && request.resource.data.lookup is string
+          && request.resource.data.lookup.size() > 0 && request.resource.data.lookup.size() <= 120)
+        // ход в тренажёре «Разговор с мошенником»
+        || (request.resource.data.keys().hasOnly(['sim', 'created_at'])
+          && request.resource.data.sim is map
+          && request.resource.data.sim.keys().hasOnly(['scenario', 'history', 'hangup'])
+          && request.resource.data.sim.scenario in ['bank', 'police', 'buyer']
+          && request.resource.data.sim.history is list && request.resource.data.sim.history.size() <= 20
+          && request.resource.data.sim.hangup is bool)
+      );
+    }
+    // Ответ читается только по точному id (он случайный и известен лишь отправителю). Списком — нельзя.
+    match /web_results/{id} {
+      allow get: if true;
+    }
+    // Всё остальное (индикаторы, жалобы, статистика) доступно только боту через Admin SDK.
+  }
+}

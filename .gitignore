@@ -1,0 +1,30 @@
+# Секреты — никогда не коммитим
+.env
+.env.*
+!.env.example
+firebase-key.json
+*firebase-adminsdk*.json
+
+# Python
+.venv/
+__pycache__/
+*.pyc
+
+# Node / Next.js
+node_modules/
+.next/
+out/
+next-env.d.ts
+*.tsbuildinfo
+
+# Логи и локальные данные
+*.log
+stats.jsonl
+.firebase/
+saqbol-bot/eval/results/last_run.log
+saqbol-bot/eval/results/make_quiz.log
+
+# Не часть проекта
+saqbol-web/
+*.pdf
+.git-create-next-app.bak/

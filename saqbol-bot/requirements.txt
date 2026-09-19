@@ -1,0 +1,6 @@
+aiogram>=3.31
+google-genai>=2.24
+anthropic>=1.7
+python-dotenv>=1.2
+tldextract>=5.3
+firebase-admin>=7.6
