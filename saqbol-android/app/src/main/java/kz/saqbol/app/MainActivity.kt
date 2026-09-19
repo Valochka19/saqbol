@@ -59,17 +59,30 @@ import java.util.Locale
 
 class MainActivity : ComponentActivity() {
     private var shared by mutableStateOf<String?>(null)
+    private var sharedImage by mutableStateOf<Uri?>(null)
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        shared = sharedText(intent)
-        setContent { App(shared) { shared = null } }
+        take(intent)
+        setContent { App(shared, sharedImage) { shared = null; sharedImage = null } }
     }
 
     override fun onNewIntent(intent: Intent) {
         super.onNewIntent(intent)
-        shared = sharedText(intent)
+        take(intent)
     }
+
+    private fun take(i: Intent?) {
+        shared = sharedText(i)
+        sharedImage = sharedPicture(i)
+    }
+
+    /** Скриншот, пришедший через «Поделиться → SaqBol». */
+    @Suppress("DEPRECATION")
+    private fun sharedPicture(i: Intent?): Uri? =
+        if (i?.action == Intent.ACTION_SEND && i.type?.startsWith("image/") == true) {
+            if (Build.VERSION.SDK_INT >= 33) i.getParcelableExtra(Intent.EXTRA_STREAM, Uri::class.java) else i.getParcelableExtra(Intent.EXTRA_STREAM)
+        } else null
 
     /** Текст, пришедший через «Поделиться → SaqBol». */
     private fun sharedText(i: Intent?): String? =
@@ -79,9 +92,9 @@ class MainActivity : ComponentActivity() {
 private val TABS = listOf("Проверка", "Защита", "Сводка")
 
 @Composable
-fun App(shared: String?, onSharedUsed: () -> Unit) {
+fun App(shared: String?, sharedImage: Uri?, onSharedUsed: () -> Unit) {
     var tab by remember { mutableIntStateOf(0) }
-    LaunchedEffect(shared) { if (shared != null) tab = 0 }
+    LaunchedEffect(shared, sharedImage) { if (shared != null || sharedImage != null) tab = 0 }
 
     Column(Modifier.fillMaxSize().background(Brand.Paper).systemBarsPadding().imePadding()) {
         Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 12.dp), verticalAlignment = Alignment.Bottom) {
@@ -93,7 +106,7 @@ fun App(shared: String?, onSharedUsed: () -> Unit) {
 
         Box(Modifier.weight(1f)) {
             when (tab) {
-                0 -> CheckScreen(shared, onSharedUsed)
+                0 -> CheckScreen(shared, sharedImage, onSharedUsed)
                 1 -> GuardScreen()
                 else -> SummaryScreen()
             }
@@ -122,12 +135,33 @@ private sealed interface CheckResult {
 }
 
 @Composable
-private fun CheckScreen(shared: String?, onSharedUsed: () -> Unit) {
+private fun CheckScreen(shared: String?, sharedImage: Uri?, onSharedUsed: () -> Unit) {
     var mode by remember { mutableIntStateOf(0) } // 0 — сообщение, 1 — номер
     var text by remember { mutableStateOf("") }
     var busy by remember { mutableStateOf(false) }
     var result by remember { mutableStateOf<CheckResult?>(null) }
     val scope = rememberCoroutineScope()
+    val ctx = LocalContext.current
+    var reading by remember { mutableStateOf(false) } // идёт проверка скриншота
+
+    fun runImage(uri: Uri) {
+        if (busy) return
+        busy = true
+        reading = true
+        result = null
+        scope.launch {
+            result = try {
+                CheckResult.Message(Api.checkImage(Images.shrink(ctx, uri)))
+            } catch (e: Api.ApiError) {
+                CheckResult.Failed(Api.errorText(e.code))
+            } catch (e: Exception) {
+                CheckResult.Failed("Не получилось прочитать картинку. Попробуйте другой скриншот.")
+            }
+            busy = false
+            reading = false
+        }
+    }
+    val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> if (uri != null) runImage(uri) }
 
     fun run() {
         val input = text.trim()
@@ -145,12 +179,17 @@ private fun CheckScreen(shared: String?, onSharedUsed: () -> Unit) {
     }
 
     // Пришли через «Поделиться»: сразу подставляем текст и запускаем проверку
-    LaunchedEffect(shared) {
+    LaunchedEffect(shared, sharedImage) {
         if (shared != null) {
             mode = 0
             text = shared
             onSharedUsed()
             run()
+        } else if (sharedImage != null) {
+            mode = 0
+            text = ""
+            onSharedUsed()
+            runImage(sharedImage)
         }
     }
 
@@ -180,10 +219,13 @@ private fun CheckScreen(shared: String?, onSharedUsed: () -> Unit) {
                 },
             )
         }
-        BigButton(if (busy) "Проверяем…" else "Проверить", fill = Brand.Signal, enabled = !busy && text.isNotBlank()) { run() }
+        BigButton(if (busy && !reading) "Проверяем…" else "Проверить", fill = Brand.Signal, enabled = !busy && text.isNotBlank()) { run() }
+        if (mode == 0) {
+            BigButton(if (reading) "Читаем скриншот…" else "Выбрать скриншот", fill = Brand.Ink, enabled = !busy) { pickImage.launch("image/*") }
+        }
 
         if (mode == 0 && result == null && !busy) {
-            Text("Быстрее всего — из самого мессенджера: зажмите сообщение → «Поделиться» → SaqBol.", style = Brand.Small)
+            Text("Быстрее всего — из самого мессенджера: зажмите сообщение или откройте скриншот → «Поделиться» → SaqBol.", style = Brand.Small)
         }
 
         when (val r = result) {

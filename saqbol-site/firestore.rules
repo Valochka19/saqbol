@@ -13,6 +13,10 @@ service cloud.firestore {
         (request.resource.data.keys().hasOnly(['text', 'created_at'])
           && request.resource.data.text is string
           && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 2000)
+        // проверка скриншота: уменьшенный JPEG в base64 (документ Firestore ограничен 1 МБ)
+        || (request.resource.data.keys().hasOnly(['image', 'created_at'])
+          && request.resource.data.image is string
+          && request.resource.data.image.size() > 100 && request.resource.data.image.size() <= 950000)
         // проверка получателя: номер, карта, ссылка
         || (request.resource.data.keys().hasOnly(['lookup', 'created_at'])
           && request.resource.data.lookup is string

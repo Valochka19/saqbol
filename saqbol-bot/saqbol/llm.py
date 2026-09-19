@@ -74,14 +74,35 @@ async def classify(text: str, rules_summary: str) -> LLMVerdict:
     return await _structured(SYSTEM_PROMPT, user_content, LLMVerdict)
 
 
-async def _structured(system: str, user_content: str, schema, temperature: float = 0):
-    """Один вызов модели со строго структурированным ответом. Общий для проверки и симулятора."""
+class ImageVerdict(LLMVerdict):
+    extracted_text: str = Field(description="Весь текст сообщения или переписки со скриншота, дословно. Пустая строка, если текста нет")
+    is_message: bool = Field(description="true, если на картинке сообщение, переписка, письмо, чек или объявление; false — если это посторонняя картинка")
+
+
+IMAGE_TASK = (
+    "На картинке — скриншот, который человек получил или сделал сам: переписка в мессенджере, SMS, письмо, "
+    "чек перевода, объявление. Перепиши весь текст с картинки дословно в extracted_text и оцени, мошенничество ли это, "
+    "по тем же правилам, что и для текстового сообщения. Учитывай то, чего нет в тексте: незнакомый номер вместо имени, "
+    "аватарку с логотипом банка у обычного аккаунта, признаки поддельного чека (разные шрифты, неровные цифры, нет "
+    "номера квитанции). Про чек перевода никогда не пиши, что он настоящий: по картинке это установить нельзя — "
+    "советуй проверить поступление денег в приложении банка. Если на картинке нет сообщения, ставь is_message = false."
+)
+
+
+async def classify_image(data: bytes, mime: str) -> ImageVerdict:
+    """Проверка скриншота: модель сама читает текст с картинки и сразу выносит вердикт."""
+    return await _structured(SYSTEM_PROMPT, IMAGE_TASK, ImageVerdict, image=(data, mime))
+
+
+async def _structured(system: str, user_content: str, schema, temperature: float = 0,
+                      image: tuple[bytes, str] | None = None):
+    """Один вызов модели со строго структурированным ответом. Общий для проверки, скриншотов и симулятора."""
     if PROVIDER == "claude":
-        return await _call_claude(system, user_content, schema)
-    return await _call_gemini(system, user_content, schema, temperature)
+        return await _call_claude(system, user_content, schema, image)
+    return await _call_gemini(system, user_content, schema, temperature, image)
 
 
-async def _call_gemini(system: str, user_content: str, schema, temperature: float):
+async def _call_gemini(system: str, user_content: str, schema, temperature: float, image=None):
     from google import genai
     from google.genai import errors, types
 
@@ -92,7 +113,7 @@ async def _call_gemini(system: str, user_content: str, schema, temperature: floa
     try:
         response = await _client.aio.models.generate_content(
             model=MODEL,
-            contents=user_content,
+            contents=[types.Part.from_bytes(data=image[0], mime_type=image[1]), user_content] if image else user_content,
             config=types.GenerateContentConfig(
                 system_instruction=system,
                 response_mime_type="application/json",
@@ -113,7 +134,7 @@ async def _call_gemini(system: str, user_content: str, schema, temperature: floa
     return response.parsed
 
 
-async def _call_claude(system: str, user_content: str, schema):
+async def _call_claude(system: str, user_content: str, schema, image=None):
     import anthropic
 
     global _client
@@ -125,7 +146,7 @@ async def _call_claude(system: str, user_content: str, schema):
             model=MODEL,
             max_tokens=4000,
             system=system,
-            messages=[{"role": "user", "content": user_content}],
+            messages=[{"role": "user", "content": _claude_content(user_content, image)}],
             output_format=schema,
             output_config={"effort": "low"},
         )
@@ -141,3 +162,14 @@ async def _call_claude(system: str, user_content: str, schema):
     if response.stop_reason == "refusal" or response.parsed_output is None:
         raise LLMUnavailable("модель не вернула ответ")
     return response.parsed_output
+
+
+def _claude_content(user_content: str, image):
+    if not image:
+        return user_content
+    import base64
+
+    return [
+        {"type": "image", "source": {"type": "base64", "media_type": image[1], "data": base64.standard_b64encode(image[0]).decode()}},
+        {"type": "text", "text": user_content},
+    ]

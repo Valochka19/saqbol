@@ -5,10 +5,11 @@ import { useEffect, useRef, useState } from "react";
 import { SectionHead } from "@/components/Data";
 import { db } from "@/lib/firebase";
 import { CATEGORY, KIND, VERDICT } from "@/lib/labels";
+import { shrinkImage } from "@/lib/shrink";
 import type { Kind, Verdict } from "@/lib/summary";
 
 interface Result {
-  error?: "busy" | "failed";
+  error?: "busy" | "failed" | "not_a_message";
   verdict: Verdict;
   confidence: number;
   scheme: string;
@@ -25,7 +26,7 @@ const EXAMPLES = [
   "Kaspi.kz: Покупка 4 500 ₸ в Magnum. Доступно 128 340 ₸",
 ];
 
-const STAGES = ["Отправляем сообщение", "Ищем известные номера и сайты мошенников", "Разбираем смысл сообщения"];
+const STAGES = ["Отправляем", "Ищем известные номера и сайты мошенников", "Разбираем смысл сообщения"];
 
 export function CheckWidget() {
   const [text, setText] = useState("");
@@ -33,18 +34,34 @@ export function CheckWidget() {
   const [stage, setStage] = useState(0);
   const [result, setResult] = useState<Result | null>(null);
   const stop = useRef<(() => void) | null>(null);
+  const [shot, setShot] = useState<{ base64: string; preview: string } | null>(null);
+  const [shotError, setShotError] = useState<string | null>(null);
+  const picker = useRef<HTMLInputElement>(null);
+
+  async function attach(file: Blob | null | undefined) {
+    if (!file || !file.type.startsWith("image/")) return;
+    setShotError(null);
+    try {
+      setShot(await shrinkImage(file));
+      setResult(null);
+      setState("idle");
+    } catch {
+      setShotError("Не получилось прочитать картинку. Попробуйте другой скриншот.");
+    }
+  }
 
   useEffect(() => () => stop.current?.(), []);
 
   async function submit() {
     const body = text.trim();
-    if (!body || state === "waiting") return;
+    if ((!body && !shot) || state === "waiting") return;
     setState("waiting");
     setStage(0);
     setResult(null);
     stop.current?.();
 
-    const ref = await addDoc(collection(db, "web_requests"), { text: body.slice(0, 2000), created_at: serverTimestamp() });
+    const payload = shot ? { image: shot.base64 } : { text: body.slice(0, 2000) };
+    const ref = await addDoc(collection(db, "web_requests"), { ...payload, created_at: serverTimestamp() });
     const stages = setInterval(() => setStage((s) => Math.min(s + 1, STAGES.length - 1)), 1300);
     const timer = setTimeout(() => finish("timeout"), 40_000);
     const unsub = onSnapshot(doc(db, "web_results", ref.id), (snap) => {
@@ -80,16 +97,38 @@ export function CheckWidget() {
           value={text}
           onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => (e.ctrlKey || e.metaKey) && e.key === "Enter" && submit()}
+          onPaste={(e) => {
+            const img = Array.from(e.clipboardData.files).find((f) => f.type.startsWith("image/"));
+            if (img) { e.preventDefault(); attach(img); }
+          }}
+          onDrop={(e) => { e.preventDefault(); attach(e.dataTransfer.files[0]); }}
+          onDragOver={(e) => e.preventDefault()}
+          disabled={!!shot}
           maxLength={2000}
           rows={5}
-          placeholder="Например: «Ваша карта заблокирована, для разблокировки перейдите по ссылке…»"
+          placeholder={shot ? "Проверим скриншот ниже" : "Например: «Ваша карта заблокирована, для разблокировки перейдите по ссылке…»"}
           className="mt-1 w-full resize-y border border-ink bg-[#fbf9f3] p-4 font-serif text-[18px] leading-[1.5] placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal"
         />
+        <input ref={picker} type="file" accept="image/*" hidden onChange={(e) => { attach(e.target.files?.[0]); e.target.value = ""; }} />
+        {shot ? (
+          <div className="mt-2 flex items-center gap-3 border border-ink bg-[#fbf9f3] p-2">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={shot.preview} alt="Выбранный скриншот" className="h-[72px] w-[72px] border border-hair object-cover" />
+            <p className="flex-1 text-[14px] leading-snug">Скриншот выбран. Мы прочитаем текст с картинки сами.</p>
+            <button onClick={() => setShot(null)} className="kicker min-h-[40px] border border-ink px-3 hover:bg-ink hover:!text-paper">Убрать</button>
+          </div>
+        ) : (
+          <button onClick={() => picker.current?.click()} className="mt-2 w-full border border-dashed border-ink px-4 py-3 text-left text-[14px] leading-snug hover:bg-paper-2">
+            <span className="font-medium">Или загрузите скриншот</span>
+            <span className="text-ink-2"> — переписки, SMS или чека перевода. Можно вставить из буфера обмена.</span>
+          </button>
+        )}
+        {shotError && <p className="mt-2 text-[14px] text-signal">{shotError}</p>}
         <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
           <span className="fine num">{text.length} / 2000<span className="hidden sm:inline"> · Ctrl + Enter</span></span>
           <button
             onClick={submit}
-            disabled={!text.trim() || state === "waiting"}
+            disabled={(!text.trim() && !shot) || state === "waiting"}
             className="bg-signal px-6 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-white hover:bg-ink disabled:opacity-40"
           >
             {state === "waiting" ? "Проверяем…" : "Проверить"}
@@ -135,7 +174,9 @@ export function CheckWidget() {
 
         {state === "done" && result?.error && (
           <p className="text-[14px] leading-relaxed text-ink-2">
-            {result.error === "busy" ? "Слишком много проверок одновременно. Повторите через минуту." : "Проверка не удалась. Попробуйте ещё раз."}
+            {result.error === "busy" ? "Слишком много проверок одновременно. Повторите через минуту."
+              : result.error === "not_a_message" ? "Не вижу на картинке сообщения. Загрузите скриншот переписки, SMS или чека."
+              : "Проверка не удалась. Попробуйте ещё раз."}
           </p>
         )}
 

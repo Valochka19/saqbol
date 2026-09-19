@@ -99,3 +99,26 @@ async def analyze(text: str, use_llm: bool = True) -> Verdict:
         rule_score=r.score,
         urls=r.urls,
     )
+
+
+class NotAMessage(Exception):
+    """На картинке нет сообщения — проверять нечего."""
+
+
+async def analyze_image(data: bytes, mime: str) -> tuple[Verdict, str]:
+    """Проверка скриншота. Возвращает вердикт и распознанный текст: из него потом достаются номера и ссылки."""
+    if not llm.is_configured():
+        raise llm.LLMUnavailable("для скриншотов нужна модель")
+    v = await llm.classify_image(data, mime)
+    if not v.is_message:
+        raise NotAMessage()
+
+    r = rules.analyze(v.extracted_text)
+    verdict = v.verdict
+    if verdict == "safe" and any(s.code in ("lookalike", "punycode") for s in r.signals):
+        verdict = "suspicious"
+    return Verdict(
+        verdict=verdict, confidence=max(0, min(99, v.confidence)), scheme=v.scheme, red_flags=v.red_flags[:4],
+        advice=v.advice, language=v.language, category=v.category if verdict != "safe" else "none",
+        source="rules+llm", rule_score=r.score, urls=r.urls,
+    ), v.extracted_text

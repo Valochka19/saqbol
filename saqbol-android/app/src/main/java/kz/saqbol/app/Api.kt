@@ -30,7 +30,10 @@ object Api {
     data class FeedRow(val verdict: String, val category: String, val atMillis: Long)
 
     suspend fun check(text: String): Verdict {
-        val r = ask("text", text.take(2000), timeoutMs = 40_000)
+        return verdict(ask("text", text.take(2000), timeoutMs = 40_000))
+    }
+
+    private fun verdict(r: JSONObject): Verdict {
         return Verdict(
             verdict = r.optString("verdict", "safe"), confidence = r.optInt("confidence"),
             scheme = r.optString("scheme"), category = r.optString("category", "other"),
@@ -38,6 +41,9 @@ object Api {
             known = r.optJSONArray("known").objects().map { Known(it.optString("value"), it.optInt("reporters")) },
         )
     }
+
+    /** Скриншот: уменьшенный JPEG в base64. Текст с картинки читает сервер. */
+    suspend fun checkImage(jpegBase64: String): Verdict = verdict(ask("image", jpegBase64, timeoutMs = 60_000))
 
     suspend fun lookup(value: String, timeoutMs: Long = 15_000): List<Recipient> {
         val r = ask("lookup", value.take(120), timeoutMs)
@@ -132,6 +138,7 @@ object Api {
         "timeout" -> "Сервис не ответил. Проверьте интернет и попробуйте ещё раз."
         "busy" -> "Слишком много запросов. Повторите через минуту."
         "unrecognized" -> "Не вижу здесь номера телефона, карты или ссылки."
+        "not_a_message" -> "Не вижу на картинке сообщения. Выберите скриншот переписки, SMS или чека."
         "network" -> "Нет связи с интернетом."
         else -> "Не получилось. Попробуйте ещё раз."
     }

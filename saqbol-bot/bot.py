@@ -20,7 +20,7 @@ from aiogram.filters import Command, CommandStart  # noqa: E402
 from aiogram.types import Message  # noqa: E402
 
 from saqbol import indicators, llm, store, webqueue  # noqa: E402
-from saqbol.analyzer import Verdict, analyze  # noqa: E402
+from saqbol.analyzer import NotAMessage, Verdict, analyze, analyze_image  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("saqbol")
@@ -33,7 +33,7 @@ dp = Dispatcher()
 
 START_TEXT = (
     "👋 <b>SaqBol AI</b> — проверка сообщений на мошенничество.\n\n"
-    "Перешлите мне подозрительное SMS, сообщение из WhatsApp/Telegram или ссылку — "
+    "Перешлите мне подозрительное SMS, сообщение из WhatsApp/Telegram, ссылку или скриншот переписки — "
     "я скажу, мошенники это или нет, и объясню почему.\n\n"
     "🇰🇿 Күмәнді хабарламаны немесе сілтемені маған жіберіңіз — "
     "алаяқтық па, жоқ па, түсіндіріп беремін.\n\n"
@@ -116,20 +116,50 @@ async def on_start(message: Message) -> None:
     await message.answer(START_TEXT)
 
 
-@dp.message(F.text | F.caption)
-async def on_message(message: Message) -> None:
-    text = (message.text or message.caption or "").strip()
-    if not text:
-        return
-
+async def too_fast(message: Message) -> bool:
     now = time.monotonic()
     if now - _last_request.get(message.chat.id, 0) < MIN_INTERVAL_SEC:
         await message.answer("⏳ Секунду, проверяю предыдущее сообщение.")
-        return
+        return True
     _last_request[message.chat.id] = now
+    return False
 
+
+@dp.message(F.photo | F.document.mime_type.startswith("image/"))
+async def on_image(message: Message) -> None:
+    """Скриншот переписки, SMS или чека: модель читает текст с картинки сама."""
+    if await too_fast(message):
+        return
     await message.bot.send_chat_action(message.chat.id, ChatAction.TYPING)
-    verdict = await analyze(text[:4000])
+
+    source = message.photo[-1] if message.photo else message.document
+    if (source.file_size or 0) > 8_000_000:
+        await message.reply("Картинка слишком большая. Пришлите обычный скриншот.")
+        return
+    buffer = await message.bot.download(source)
+    mime = message.document.mime_type if message.document else "image/jpeg"
+    try:
+        verdict, text = await analyze_image(buffer.read(), mime)
+    except NotAMessage:
+        await message.reply("Не вижу на картинке сообщения. Пришлите скриншот переписки, SMS или чека.")
+        return
+    except llm.LLMUnavailable:
+        await message.reply("Сейчас не могу прочитать картинку. Скопируйте сообщение текстом и пришлите мне.")
+        return
+    await finish(message, verdict, text, "photo")
+
+
+@dp.message(F.text | F.caption)
+async def on_message(message: Message) -> None:
+    text = (message.text or message.caption or "").strip()
+    if not text or await too_fast(message):
+        return
+    await message.bot.send_chat_action(message.chat.id, ChatAction.TYPING)
+    await finish(message, await analyze(text[:4000]), text, "text")
+
+
+async def finish(message: Message, verdict: Verdict, text: str, input_type: str) -> None:
+    """Общий хвост для текста и скриншота: сверка с базой, ответ, статистика."""
     sightings = await check_base(text, verdict, message.chat.id)
     lang = verdict.language if verdict.language in BASE_TEXT else "ru"
 
@@ -145,7 +175,7 @@ async def on_message(message: Message) -> None:
     if store.is_configured():
         try:
             await store.log_check(verdict.verdict, verdict.confidence, verdict.scheme, verdict.source,
-                                  lang, "text", bool(verdict.urls), len(sightings), verdict.category)
+                                  lang, input_type, bool(verdict.urls), len(sightings), verdict.category)
             await store.publish_summary()
         except Exception:
             log.exception("Не удалось записать статистику в базу")
@@ -154,7 +184,7 @@ async def on_message(message: Message) -> None:
 
 @dp.message()
 async def on_other(message: Message) -> None:
-    await message.answer("Пока я понимаю только текст и ссылки. Скопируйте сообщение текстом и пришлите мне.")
+    await message.answer("Я понимаю текст, ссылки и скриншоты. Голосовые пока нет — пришлите сообщение текстом или картинкой.")
 
 
 async def main() -> None:

@@ -12,7 +12,7 @@ import time
 from datetime import datetime, timezone
 
 from . import indicators, simulator, store
-from .analyzer import analyze
+from .analyzer import NotAMessage, analyze, analyze_image
 
 log = logging.getLogger("saqbol")
 
@@ -77,8 +77,19 @@ async def _handle(doc_id: str, data: dict) -> None:
             await result_ref.set(await _simulate(data["sim"]))
             return
 
-        text = str(data.get("text", ""))[:2000]
-        v = await analyze(text)
+        if "image" in data:
+            import base64
+
+            try:
+                v, text = await analyze_image(base64.b64decode(str(data["image"]), validate=True), "image/jpeg")
+            except NotAMessage:
+                await result_ref.set({"error": "not_a_message", "created_at": datetime.now(timezone.utc)})
+                return
+            input_type = "photo"
+        else:
+            text = str(data.get("text", ""))[:2000]
+            v = await analyze(text)
+            input_type = "web"
 
         known = []
         for ind in indicators.extract(text)[:8]:
@@ -92,7 +103,7 @@ async def _handle(doc_id: str, data: dict) -> None:
             "scheme": v.scheme, "category": v.category, "flags": v.red_flags, "advice": v.advice,
             "language": v.language, "source": v.source, "known": known,
         })
-        await store.log_check(verdict, v.confidence, v.scheme, v.source, v.language, "web",
+        await store.log_check(verdict, v.confidence, v.scheme, v.source, v.language, input_type,
                               bool(v.urls), len(known), v.category)
         await store.publish_summary()
     except Exception:
