@@ -13,6 +13,7 @@ const NAV = [
 ];
 const PRO = [
   { href: "/monitor/", label: "Мониторинг" },
+  { href: "/demo-bank/", label: "Демо-банк" },
   { href: "/banks/", label: "Банкам" },
   { href: "/method/", label: "Методика" },
 ];
