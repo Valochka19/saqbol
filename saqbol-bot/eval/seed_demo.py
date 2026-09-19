@@ -56,6 +56,11 @@ async def main() -> None:
                                   any(i.kind == "domain" for i in found), len(found), category, created_at=at, demo=True)
             checks += 1
 
+    # Номер из примера на главной странице сайта — должен находиться в базе
+    example = indicators.extract("8 705 111 22 33")[0]
+    for n in range(3):
+        await store.report(example, f"demo-example-{n}", "scam", "Взлом аккаунта знакомого", "hacked_account", demo=True)
+
     # Обычные сообщения тоже проверяют — примерно столько же, сколько мошеннических
     for _ in range(int(checks * 1.1)):
         at = now - timedelta(days=min(13, int(random.expovariate(1 / 5))), minutes=random.randint(0, 900))

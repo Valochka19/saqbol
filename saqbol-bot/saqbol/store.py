@@ -12,7 +12,6 @@
 import logging
 import os
 from dataclasses import dataclass
-from collections import Counter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
@@ -22,6 +21,7 @@ log = logging.getLogger("saqbol")
 
 _KEY_PATH = Path(os.getenv("FIREBASE_CREDENTIALS") or Path(__file__).resolve().parent.parent / "firebase-key.json")
 _db = None
+KZ_TZ = timezone(timedelta(hours=5))  # единое время Казахстана
 
 
 @dataclass
@@ -56,6 +56,7 @@ async def report(ind: Indicator, reporter: str, verdict: str, scheme: str,
                  category: str = "other", demo: bool = False) -> Sighting:
     """Записать жалобу и вернуть, сколько других людей жаловались до неё. Одна транзакция."""
     from firebase_admin import firestore_async
+    from google.cloud.firestore_v1 import Increment
 
     db = _get_db()
     ind_ref = db.collection("indicators").document(_doc_id(ind))
@@ -80,6 +81,20 @@ async def report(ind: Indicator, reporter: str, verdict: str, scheme: str,
             "status": data.get("status", "unverified"),
         })
         tx.set(rep_ref, {"last_report": now}, merge=True)
+
+        # Накопительные счётчики для дашборда: не пересчитываем всю базу при каждой проверке
+        totals = {}
+        if not ind_snap.exists:
+            totals["indicators"] = Increment(1)
+        if is_new_reporter and reporters == 1:
+            totals["repeat"] = Increment(1)  # второй независимый заявитель
+        if totals or demo:
+            agg = {"totals": totals} if totals else {}
+            if not ind_snap.exists:
+                agg["kinds"] = {ind.kind: Increment(1)}
+            if demo:
+                agg["has_demo"] = True
+            tx.set(_agg_ref(db), agg, merge=True)
         return Sighting(ind, reporters - (0 if is_new_reporter else 1),
                         data.get("first_seen"), data.get("status", "unverified"))
 
@@ -98,14 +113,32 @@ async def lookup(ind: Indicator) -> Sighting | None:
 async def log_check(verdict: str, confidence: int, scheme: str, source: str, lang: str,
                     input_type: str, has_url: bool, indicators: int, category: str = "other",
                     created_at: datetime | None = None, demo: bool = False) -> None:
-    await _get_db().collection("checks").add({
-        "created_at": created_at or datetime.now(timezone.utc), "verdict": verdict, "confidence": confidence,
+    from google.cloud.firestore_v1 import Increment
+
+    db = _get_db()
+    at = created_at or datetime.now(timezone.utc)
+    await db.collection("checks").add({
+        "created_at": at, "verdict": verdict, "confidence": confidence,
         "scheme": scheme, "category": category, "source": source, "lang": lang, "input_type": input_type,
         "has_url": has_url, "indicators": indicators, "demo": demo,
     })
 
+    flagged = verdict != "safe"
+    day = at.astimezone(KZ_TZ).date().isoformat()
+    agg = {
+        "totals": {"checks": Increment(1), "flagged": Increment(int(flagged)), "scam": Increment(int(verdict == "scam"))},
+        "input_types": {input_type: Increment(1)},
+        "daily": {day: {"total": Increment(1), "flagged": Increment(int(flagged))}},
+    }
+    if flagged:
+        agg["categories"] = {category: Increment(1)}
+    if demo:
+        agg["has_demo"] = True
+    await _agg_ref(db).set(agg, merge=True)
 
-KZ_TZ = timezone(timedelta(hours=5))  # единое время Казахстана
+
+def _agg_ref(db):
+    return db.collection("stats").document("aggregate")
 
 
 def mask(kind: str, display: str) -> str:
@@ -138,35 +171,33 @@ def risk_score(reporters: int, last_seen: datetime | None, category: str, status
 
 
 async def publish_summary() -> None:
-    """Пересчитать сводку для дашборда. Сайт читает только этот документ, сырые данные ему недоступны."""
+    """Собрать сводку для дашборда. Сайт читает только этот документ, сырые данные ему недоступны.
+
+    Стоит ~40 чтений: документ счётчиков, 12 последних проверок и 25 индикаторов с наибольшим числом заявителей.
+    """
     from google.cloud.firestore_v1 import Query
 
     db = _get_db()
-    checks = [d.to_dict() async for d in
-              db.collection("checks").order_by("created_at", direction=Query.DESCENDING).limit(3000).stream()]
-    inds = [d.to_dict() async for d in db.collection("indicators").limit(1000).stream()]
-    checks = [c for c in checks if c.get("source") != "selftest"]
-    inds = [i for i in inds if i.get("value") != "saqbol_selftest" and i.get("status") != "rejected"]
+    agg = (await _agg_ref(db).get()).to_dict() or {}
+    feed = [d.to_dict() async for d in
+            db.collection("checks").order_by("created_at", direction=Query.DESCENDING).limit(12).stream()]
+    inds = [d.to_dict() async for d in
+            db.collection("indicators").order_by("reporters_count", direction=Query.DESCENDING).limit(30).stream()]
+    inds = [i for i in inds if i.get("status") != "rejected"][:25]
 
-    flagged = [c for c in checks if c["verdict"] != "safe"]
+    totals = {"checks": 0, "flagged": 0, "scam": 0, "indicators": 0, "repeat": 0, **agg.get("totals", {})}
     today = datetime.now(KZ_TZ).date()
-    days = [today - timedelta(days=n) for n in range(13, -1, -1)]
-    per_day_total = Counter(c["created_at"].astimezone(KZ_TZ).date() for c in checks)
-    per_day_flagged = Counter(c["created_at"].astimezone(KZ_TZ).date() for c in flagged)
+    daily = agg.get("daily", {})
+    days = [(today - timedelta(days=n)).isoformat() for n in range(13, -1, -1)]
 
-    inds.sort(key=lambda i: (i.get("reporters_count", 0), i.get("last_seen")), reverse=True)
     summary = {
         "updated_at": datetime.now(timezone.utc),
-        "totals": {
-            "checks": len(checks), "flagged": len(flagged),
-            "scam": sum(c["verdict"] == "scam" for c in checks),
-            "indicators": len(inds),
-            "repeat": sum(i.get("reporters_count", 0) >= 2 for i in inds),
-        },
-        "categories": dict(Counter(c.get("category", "other") for c in flagged)),
-        "kinds": dict(Counter(i["kind"] for i in inds)),
-        "input_types": dict(Counter(c.get("input_type", "text") for c in checks)),
-        "daily": [{"date": d.isoformat(), "total": per_day_total[d], "flagged": per_day_flagged[d]} for d in days],
+        "totals": totals,
+        "categories": agg.get("categories", {}),
+        "kinds": agg.get("kinds", {}),
+        "input_types": agg.get("input_types", {}),
+        "daily": [{"date": d, "total": daily.get(d, {}).get("total", 0),
+                   "flagged": daily.get(d, {}).get("flagged", 0)} for d in days],
         "top_indicators": [{
             "kind": i["kind"], "value": mask(i["kind"], i["display"]),
             "reporters": i.get("reporters_count", 0), "reports": i.get("reports_count", 0),
@@ -175,12 +206,12 @@ async def publish_summary() -> None:
             "first_seen": i.get("first_seen"), "last_seen": i.get("last_seen"),
             "category": i.get("last_category", "other"), "scheme": i.get("last_scheme", ""),
             "status": i.get("status", "unverified"),
-        } for i in inds[:25]],
+        } for i in inds],
         "feed": [{
             "at": c["created_at"], "verdict": c["verdict"], "category": c.get("category", "other"),
             "scheme": c.get("scheme", ""), "input_type": c.get("input_type", "text"),
             "indicators": c.get("indicators", 0),
-        } for c in checks[:12]],
-        "has_demo_data": any(c.get("demo") for c in checks) or any(i.get("demo") for i in inds),
+        } for c in feed],
+        "has_demo_data": bool(agg.get("has_demo")),
     }
     await db.collection("public").document("summary").set(summary)
