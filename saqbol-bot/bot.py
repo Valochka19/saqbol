@@ -30,7 +30,7 @@ MIN_INTERVAL_SEC = 3  # защита от спама и лишних трат н
 _last_request: dict[int, float] = {}
 
 dp = Dispatcher()
-main = Router()  # общие обработчики; подключается после chat_features, чтобы режимы чата имели приоритет
+common = Router()  # общие обработчики; подключается после chat_features, чтобы режимы чата имели приоритет
 
 START_TEXT = "\n".join([
     "👋 <b>SaqBol</b> — сақ бол, «будь осторожен».",
@@ -115,13 +115,13 @@ def save_stat(v: Verdict, text_len: int) -> None:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-@main.message(CommandStart())
-@main.message(Command("help"))
+@common.message(CommandStart())
+@common.message(Command("help"))
 async def on_start(message: Message) -> None:
     await message.answer(START_TEXT, reply_markup=chat_features.main_menu())
 
 
-@main.message(Command("myid"))
+@common.message(Command("myid"))
 async def on_myid(message: Message) -> None:
     """ID чата нужен, чтобы бот знал, кому пересылать заявки с сайта (SAQBOL_ADMIN_CHAT в .env)."""
     await message.answer(f"ID этого чата: <code>{message.chat.id}</code>")
@@ -136,7 +136,7 @@ async def too_fast(message: Message) -> bool:
     return False
 
 
-@main.message(F.photo | F.document.mime_type.startswith("image/"))
+@common.message(F.photo | F.document.mime_type.startswith("image/"))
 async def on_image(message: Message) -> None:
     """Скриншот переписки, SMS или чека: модель читает текст с картинки сама."""
     if await too_fast(message):
@@ -160,7 +160,7 @@ async def on_image(message: Message) -> None:
     await finish(message, verdict, text, "photo")
 
 
-@main.message(F.text | F.caption)
+@common.message(F.text | F.caption)
 async def on_message(message: Message) -> None:
     text = (message.text or message.caption or "").strip()
     if not text or await too_fast(message):
@@ -195,7 +195,7 @@ async def finish(message: Message, verdict: Verdict, text: str, input_type: str)
     await message.reply(reply)
 
 
-@main.message()
+@common.message()
 async def on_other(message: Message) -> None:
     await message.answer("Я понимаю текст, ссылки и скриншоты. Голосовые пока нет — пришлите сообщение текстом или картинкой.")
 
@@ -237,7 +237,7 @@ async def main() -> None:
         webqueue.start_leads(asyncio.get_running_loop(), notify_owner)
     log.info("SaqBol AI запущен, модель: %s", llm.MODEL if llm.is_configured() else "нет (только правила)")
     dp.include_router(chat_features.router)
-    dp.include_router(main)
+    dp.include_router(common)
     await dp.start_polling(bot)
 
 
