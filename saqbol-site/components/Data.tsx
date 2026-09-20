@@ -21,20 +21,18 @@ export function SectionHead({ title, note }: { title: string; note?: React.React
 export function Figures({ totals }: { totals: Summary["totals"] }) {
   const share = totals.checks ? Math.round((totals.flagged / totals.checks) * 100) : 0;
   const items = [
-    { label: "Проверено сообщений", value: totals.checks, note: "за всё время работы" },
-    { label: "Выявлено угроз", value: totals.flagged, note: `${share}% от проверенных`, signal: true },
-    { label: "Индикаторов в базе", value: totals.indicators, note: "номера, карты, домены, аккаунты" },
-    { label: "Повторных", value: totals.repeat, note: "жаловались 2 и более человек" },
+    { label: "Сообщений проверено", value: totals.checks, note: "за всё время" },
+    { label: "Оказались обманом", value: totals.flagged, note: `${share}% от проверенных`, signal: true },
+    { label: "Номеров и сайтов в базе", value: totals.indicators, note: "телефоны, карты, сайты, аккаунты" },
+    { label: "Жаловались несколько человек", value: totals.repeat, note: "двое и больше — это уже рассылка" },
   ];
   return (
-    <dl className="grid grid-cols-2 lg:grid-cols-4">
-      {items.map((it, i) => (
-        <div key={it.label} className={`px-0 py-3 lg:px-5 ${i ? "lg:border-l lg:border-hair" : "lg:pl-0"}`}>
-          <dt className="kicker">{it.label}</dt>
-          <dd className={`num mt-1 text-[44px] font-medium leading-none sm:text-[56px] ${it.signal ? "text-signal" : ""}`}>
-            {fmtNum(it.value)}
-          </dd>
-          <dd className="mt-2 text-[12px] text-ink-3">{it.note}</dd>
+    <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
+      {items.map((it) => (
+        <div key={it.label} className={`card ${it.signal ? "card-ink" : "card-plain"}`}>
+          <dd className="num text-[36px] font-medium leading-none sm:text-[44px]">{fmtNum(it.value)}</dd>
+          <dt className="mt-2 text-[14px] font-medium leading-snug">{it.label}</dt>
+          <dd className={`mt-1 text-[12px] ${it.signal ? "opacity-70" : "text-ink-3"}`}>{it.note}</dd>
         </div>
       ))}
     </dl>
@@ -53,7 +51,7 @@ export function Tape({ feed }: { feed: FeedRow[] }) {
   if (!feed.length) return null;
   const line = feed.map(feedLine);
   return (
-    <div className="flex items-stretch border-y border-ink text-[13px]" aria-label="Лента последних проверок">
+    <div className="flex items-stretch overflow-hidden rounded-[12px] border-[2.5px] border-ink bg-[#fbf9f3] text-[13px]" aria-label="Лента последних проверок">
       <div className="kicker flex shrink-0 items-center bg-ink px-3 !text-paper">Последние проверки</div>
       <div className="overflow-hidden whitespace-nowrap py-2">
         <div className="tape inline-block">
@@ -128,7 +126,7 @@ export function IndicatorTable({ rows, limit, filterable }: { rows: IndicatorRow
               key={k}
               onClick={() => setKind(k)}
               aria-pressed={kind === k}
-              className={`kicker min-h-[40px] border border-ink px-3 py-1 sm:min-h-0 ${kind === k ? "bg-ink !text-paper" : "hover:bg-paper-2"}`}
+              className="chip"
             >
               {k === "all" ? "Все" : KIND[k]}
             </button>

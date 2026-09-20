@@ -16,14 +16,13 @@ export default function Home() {
     <div className="space-y-12">
       {/* Главное действие — первым экраном. Два входа: есть сообщение или есть только номер. */}
       <section>
-        <div className="mb-4 grid grid-cols-2 border border-ink text-[12px] sm:mb-6 sm:inline-grid sm:text-[13px]" role="tablist" aria-label="Что проверяем">
+        <div className="seg mb-5 w-full sm:w-auto" role="tablist" aria-label="Что проверяем">
           {([["message", "У меня сообщение", "Сообщение"], ["lookup", "У меня номер, карта или ссылка", "Номер или ссылка"]] as const).map(([key, label, short]) => (
             <button
               key={key}
               role="tab"
               aria-selected={mode === key}
               onClick={() => setMode(key)}
-              className={`min-h-[44px] px-3 py-2 font-mono uppercase tracking-[0.08em] sm:px-4 ${mode === key ? "bg-ink text-paper" : "hover:bg-paper-2"}`}
             >
               <span className="sm:hidden">{short}</span>
               <span className="hidden sm:inline">{label}</span>
@@ -35,20 +34,19 @@ export default function Home() {
 
       {summary && (
         <section>
-          <div className="rule" />
-          <dl className="grid sm:grid-cols-3">
+          <dl className="grid gap-4 sm:grid-cols-3">
             {[
               ["Сообщений проверено", summary.totals.checks, false],
               ["Оказались мошенническими", summary.totals.flagged, true],
               ["Номеров и сайтов мошенников в базе", summary.totals.indicators, false],
             ].map(([label, value, signal], i) => (
-              <div key={label as string} className={`py-3 sm:px-5 ${i ? "sm:border-l sm:border-hair" : "sm:pl-0"}`}>
-                <dd className={`num text-[44px] font-medium leading-none sm:text-[52px] ${signal ? "text-signal" : ""}`}>{fmtNum(value as number)}</dd>
-                <dt className="mt-2 text-[14px] text-ink-2">{label}</dt>
+              <div key={label as string} className={`card ${i === 1 ? "card-ink" : "card-plain"}`}>
+                <dd className="num text-[40px] font-medium leading-none sm:text-[48px]">{fmtNum(value as number)}</dd>
+                <dt className={`mt-2 text-[14px] ${signal ? "opacity-80" : "text-ink-2"}`}>{label}</dt>
               </div>
             ))}
           </dl>
-          <Tape feed={summary.feed} />
+          <div className="mt-4"><Tape feed={summary.feed} /></div>
         </section>
       )}
 
@@ -75,12 +73,12 @@ export default function Home() {
         <div>
           <SectionHead title="Что рассылают мошенники сейчас" note="доля среди найденных обманов" />
           {summary ? <SchemeBars categories={summary.categories} limit={5} /> : <p className="kicker py-4">Загружаем…</p>}
-          <div className="mt-6 border border-ink p-4">
-            <p className="font-serif text-[19px] font-bold leading-snug">Сможете отличить мошенника сами?</p>
-            <p className="mt-1 text-[14px] leading-relaxed text-ink-2">
+          <div className="card card-signal mt-6">
+            <p className="font-serif text-[22px] font-bold leading-snug">Сможете отличить мошенника сами?</p>
+            <p className="mt-1 text-[15px] leading-relaxed opacity-90">
               40 ситуаций по мотивам реальных схем. По каждой нужно решить: обман или обычное сообщение — и увидеть разбор.
             </p>
-            <Link href="/trainer/" className="mt-3 inline-block bg-ink px-5 py-2 font-mono text-[12px] uppercase tracking-[0.1em] text-paper hover:bg-signal">
+            <Link href="/trainer/" className="btn btn-ghost mt-4">
               Пройти тренажёр
             </Link>
           </div>

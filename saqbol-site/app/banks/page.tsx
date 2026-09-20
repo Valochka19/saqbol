@@ -42,7 +42,7 @@ export default function Banks() {
           карты или телефона мошенник рассылает сотням людей за часы до первого перевода. SaqBol собирает эти номера у
           тех, кто не поверил и решил проверить сообщение, — и отдаёт банку.
         </p>
-        <Link href="/demo-bank/" className="mt-5 inline-block bg-signal px-5 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-white hover:bg-ink">
+        <Link href="/demo-bank/" className="btn btn-primary mt-5">
           Посмотреть, как это выглядит в приложении банка →
         </Link>
       </header>
@@ -104,7 +104,7 @@ export default function Banks() {
               сам оказывается под давлением и видит разбор своих ошибок. По итогам он получает именной сертификат с оценкой
               устойчивости; подлинность проверяется по QR-коду.
             </p>
-            <Link href="/certificate/" className="mt-4 inline-block border border-ink px-5 py-2 font-mono text-[12px] uppercase tracking-[0.1em] hover:bg-ink hover:text-paper">
+            <Link href="/certificate/" className="btn btn-ghost btn-sm mt-4">
               Как выглядит сертификат →
             </Link>
           </div>

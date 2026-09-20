@@ -64,7 +64,7 @@ export default function CertificatePage() {
     setBusy(false);
   }
 
-  const btn = "border border-ink px-4 py-2 font-mono text-[12px] uppercase tracking-[0.08em] hover:bg-ink hover:text-paper";
+  const btn = "btn btn-ghost btn-sm";
 
   if (cert) {
     return (
@@ -75,7 +75,7 @@ export default function CertificatePage() {
             <h1 className="mt-1 font-serif text-[28px] font-bold leading-[1.08] sm:text-[40px]">Поздравляем!</h1>
           </div>
           <div className="flex flex-wrap gap-2">
-            <button onClick={() => window.print()} className="bg-signal px-4 py-2 font-mono text-[12px] uppercase tracking-[0.08em] text-white hover:bg-ink">
+            <button onClick={() => window.print()} className="btn btn-primary btn-sm">
               Распечатать или сохранить PDF
             </button>
             <button
@@ -155,7 +155,7 @@ export default function CertificatePage() {
               placeholder="Айгерим Сериккызы"
               className="mt-1 w-full border border-ink bg-[#fbf9f3] px-4 py-3 font-serif text-[20px] placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal"
             />
-            <button onClick={issue} disabled={name.trim().length < 2 || busy} className="mt-3 w-full bg-signal px-6 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-white hover:bg-ink disabled:opacity-40">
+            <button onClick={issue} disabled={name.trim().length < 2 || busy} className="btn btn-primary btn-block mt-3">
               {busy ? "Оформляем…" : "Получить сертификат"}
             </button>
             <p className="fine mt-2">Имя и оценка сохраняются, чтобы сертификат можно было проверить по номеру.</p>

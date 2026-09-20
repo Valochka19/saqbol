@@ -112,10 +112,10 @@ export default function HowItWorks() {
       {/* Анатомия обмана */}
       <section>
         <SectionHead title="Анатомия обмана" note={<><span className="sm:hidden">нажмите на подчёркнутое</span><span className="hidden sm:inline">наведите на подчёркнутое</span></>} />
-        <div className="mb-4 flex flex-wrap gap-1" role="tablist" aria-label="Пример сообщения">
+        <div className="seg mb-5 !grid-flow-row sm:!grid-flow-col" role="tablist" aria-label="Пример сообщения">
           {SAMPLES.map((s) => (
             <button key={s.id} role="tab" aria-selected={active === s.id} onClick={() => { setActive(s.id); setFocus(null); }}
-              className={`border border-ink px-3 py-2 font-mono text-[12px] uppercase tracking-[0.06em] ${active === s.id ? "bg-ink text-paper" : "hover:bg-paper-2"}`}>
+>
               {s.tab}
             </button>
           ))}
@@ -123,7 +123,7 @@ export default function HowItWorks() {
 
         <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[1.15fr_1fr]">
           {/* Вырезка с пометками редакторской ручкой */}
-          <div className="relative border border-ink bg-[#fbf9f3] p-6 sm:p-8" style={{ transform: "rotate(-0.4deg)" }}>
+          <div className="card relative !p-6 sm:!p-8" style={{ transform: "rotate(-0.4deg)" }}>
             <p className="kicker border-b border-hair pb-2">{sample.from}</p>
             <p className="mt-5 font-serif text-[21px] leading-[1.9] sm:text-[24px]">
               {sample.segs.map((seg, i) =>

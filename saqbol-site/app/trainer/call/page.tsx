@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { SectionHead } from "@/components/Data";
+import { TrainerModes } from "@/components/TrainerModes";
 import { ask, ASK_ERRORS } from "@/lib/ask";
 import { loadProgress, saveProgress } from "@/lib/trainer";
 
@@ -106,12 +106,10 @@ export default function Call() {
 
   return (
     <div>
-      <p className="kicker">
-        <Link href="/trainer/" className="underline underline-offset-4 hover:text-signal">Тренажёр</Link> · Разговор с мошенником
-      </p>
+      <TrainerModes active="call" />
 
       {!sc && (
-        <div className="mt-2 grid gap-x-10 gap-y-8 lg:grid-cols-[1.3fr_1fr]">
+        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[1.3fr_1fr]">
           <div>
             <h1 className="font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Вам звонит мошенник. Сможете не поддаться?</h1>
             <p className="mt-3 max-w-[58ch] text-[16px] leading-relaxed text-ink-2">
@@ -124,13 +122,16 @@ export default function Call() {
             </p>
           </div>
           <div>
-            <SectionHead title="Выберите, кто вам звонит" />
-            <ul className="divide-y divide-hair border-b border-hair">
+            <p className="kicker mb-3 !text-ink">Выберите, кто вам звонит</p>
+            <ul className="space-y-3">
               {(Object.keys(SCENARIOS) as Scenario[]).map((key) => (
                 <li key={key}>
-                  <button onClick={() => begin(key)} className="group w-full py-3 text-left">
-                    <span className="font-serif text-[20px] font-bold group-hover:text-signal">{SCENARIOS[key].title} →</span>
-                    <span className="block text-[14px] text-ink-2">{SCENARIOS[key].brief}</span>
+                  <button onClick={() => begin(key)} className="card card-plain group w-full text-left transition-transform hover:-translate-y-[2px] hover:shadow-[5px_5px_0_var(--ink)]">
+                    <span className="flex items-center justify-between gap-3 font-serif text-[20px] font-bold">
+                      {SCENARIOS[key].title}
+                      <span className="btn btn-primary btn-sm shrink-0">Принять звонок</span>
+                    </span>
+                    <span className="mt-1 block text-[14px] text-ink-2">{SCENARIOS[key].brief}</span>
                   </button>
                 </li>
               ))}
@@ -140,16 +141,14 @@ export default function Call() {
       )}
 
       {sc && (
-        <div className="mt-2 grid gap-x-10 gap-y-8 lg:grid-cols-[1.5fr_1fr]">
+        <div className="grid gap-x-10 gap-y-8 lg:grid-cols-[1.5fr_1fr]">
           <div>
             <div className="flex items-baseline justify-between gap-4">
               <h1 className="font-serif text-[28px] font-bold leading-tight sm:text-[34px]">{sc.title}</h1>
-              <span className="kicker shrink-0">Реплика {Math.min(userTurns + (end ? 0 : 1), MAX_TURNS)} из {MAX_TURNS}</span>
+              {!end && <span className="kicker shrink-0">Реплика {Math.min(userTurns + 1, MAX_TURNS)} из {MAX_TURNS}</span>}
             </div>
-            <div className="rule-heavy mt-2" />
-
             {/* Стенограмма */}
-            <div className="max-h-[52vh] overflow-y-auto border-b border-ink">
+            <div className="card card-plain mt-3 max-h-[52vh] overflow-y-auto !py-2">
               {lines.map((l, i) => (
                 <div key={i} className="grid grid-cols-[92px_1fr] gap-x-3 border-b border-hair py-3 last:border-b-0 sm:grid-cols-[120px_1fr]">
                   <span className={`kicker pt-1 ${l.role === "scammer" ? "!text-signal" : "!text-ink"}`}>{l.role === "scammer" ? sc.who : "Вы"}</span>
@@ -183,15 +182,15 @@ export default function Call() {
                     disabled={busy}
                     autoComplete="off"
                     placeholder="Что вы ему скажете?"
-                    className="w-full border border-ink bg-[#fbf9f3] px-4 py-3 text-[16px] placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal"
+                    className="field px-4 py-3 text-[16px] placeholder:text-ink-3"
                   />
-                  <button onClick={() => send(false)} disabled={busy || !input.trim()} className="shrink-0 bg-ink px-5 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-paper hover:bg-signal disabled:opacity-40">
+                  <button onClick={() => send(false)} disabled={busy || !input.trim()} className="btn btn-primary shrink-0">
                     Ответить
                   </button>
                 </div>
                 <div className="mt-2 flex items-center justify-between gap-3">
                   <span className="fine">Настоящие коды и номера карт не вводите.</span>
-                  <button onClick={() => send(true)} disabled={busy} className="border border-signal px-4 py-2 font-mono text-[12px] uppercase tracking-[0.08em] text-signal hover:bg-signal hover:text-white disabled:opacity-40">
+                  <button onClick={() => send(true)} disabled={busy} className="btn btn-primary btn-sm">
                     Положить трубку
                   </button>
                 </div>
@@ -200,8 +199,8 @@ export default function Call() {
             {error && <p className="mt-3 text-[14px] text-ink-2">{error}</p>}
           </div>
 
-          <aside aria-live="polite">
-            <SectionHead title="Разбор" />
+          <aside aria-live="polite" className="card card-plain self-start">
+            <p className="kicker mb-3 !text-ink">Разбор</p>
             {!end && (
               <p className="text-[14px] leading-relaxed text-ink-3">
                 Появится, когда разговор закончится: вы положите трубку, твёрдо откажете или отдадите мошеннику то, что он
@@ -234,8 +233,8 @@ export default function Call() {
                 )}
                 <p className="fine mt-4">В стенограмме слева подписано, каким приёмом мошенник давил в каждой реплике.</p>
                 <div className="mt-5 flex flex-wrap gap-2">
-                  <button onClick={() => begin(scenario!)} className="bg-ink px-5 py-2 font-mono text-[12px] uppercase tracking-[0.08em] text-paper hover:bg-signal">Ещё раз</button>
-                  <button onClick={() => setScenario(null)} className="border border-ink px-5 py-2 font-mono text-[12px] uppercase tracking-[0.08em] hover:bg-ink hover:text-paper">Другой сценарий</button>
+                  <button onClick={() => begin(scenario!)} className="btn btn-primary btn-sm">Ещё раз</button>
+                  <button onClick={() => setScenario(null)} className="btn btn-ghost btn-sm">Другой сценарий</button>
                 </div>
               </div>
             )}

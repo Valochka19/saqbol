@@ -200,6 +200,16 @@ async def main() -> None:
         webqueue.start(asyncio.get_running_loop())
         log.info("Очередь проверок с сайта подключена")
 
+        async def beat() -> None:
+            while True:
+                try:
+                    await store.heartbeat()
+                except Exception:
+                    log.exception("Не удалось обновить отметку «жив»")
+                await asyncio.sleep(30)
+
+        asyncio.get_running_loop().create_task(beat())
+
     bot = Bot(token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
     log.info("SaqBol AI запущен, модель: %s", llm.MODEL if llm.is_configured() else "нет (только правила)")
     await dp.start_polling(bot)

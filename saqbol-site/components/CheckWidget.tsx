@@ -2,7 +2,6 @@
 
 import { addDoc, collection, doc, onSnapshot, serverTimestamp } from "firebase/firestore";
 import { useEffect, useRef, useState } from "react";
-import { SectionHead } from "@/components/Data";
 import { db } from "@/lib/firebase";
 import { CATEGORY, KIND, VERDICT } from "@/lib/labels";
 import { shrinkImage } from "@/lib/shrink";
@@ -21,9 +20,9 @@ interface Result {
 }
 
 const EXAMPLES = [
-  "Здравствуйте, вас беспокоит служба безопасности банка. На ваше имя оформляют кредит. Чтобы отменить заявку, назовите код из SMS.",
-  "Привет! Проголосуй пожалуйста за мою племянницу в конкурсе рисунков, там нужно войти через телеграм: https://t-me-vote.top/konkurs",
-  "Kaspi.kz: Покупка 4 500 ₸ в Magnum. Доступно 128 340 ₸",
+  { label: "Звонок «из банка»", text: "Здравствуйте, вас беспокоит служба безопасности банка. На ваше имя оформляют кредит. Чтобы отменить заявку, назовите код из SMS." },
+  { label: "«Проголосуй за племянницу»", text: "Привет! Проголосуй пожалуйста за мою племянницу в конкурсе рисунков, там нужно войти через телеграм: https://t-me-vote.top/konkurs" },
+  { label: "Обычное SMS от банка", text: "Kaspi.kz: Покупка 4 500 ₸ в Magnum. Доступно 128 340 ₸" },
 ];
 
 const STAGES = ["Отправляем", "Ищем известные номера и сайты мошенников", "Разбираем смысл сообщения"];
@@ -86,12 +85,13 @@ export function CheckWidget() {
         <h1 className="font-serif text-[28px] font-bold leading-[1.08] sm:text-[48px]">
           Пришло странное сообщение? Проверьте, не мошенники ли это
         </h1>
-        <p className="mt-2 max-w-[58ch] text-[15px] leading-snug text-ink-2 sm:mt-3 sm:text-[16px] sm:leading-relaxed">
-          Вставьте текст SMS, сообщения из WhatsApp или Telegram, письма или ссылку — на русском или казахском. Через
-          несколько секунд получите ответ с объяснением. Текст мы не сохраняем.
+        <p className="mt-2 max-w-[58ch] text-[15px] leading-snug text-ink-2 sm:mt-3 sm:text-[17px]">
+          Вставьте текст или скриншот — через несколько секунд скажем, обман это или нет, и объясним почему. На русском
+          и казахском. Сообщение не сохраняем.
         </p>
 
-        <label htmlFor="msg" className="kicker mt-4 block sm:mt-6">Текст сообщения</label>
+        <div className="card mt-5">
+        <label htmlFor="msg" className="kicker block">Текст сообщения</label>
         <textarea
           id="msg"
           value={text}
@@ -107,50 +107,45 @@ export function CheckWidget() {
           maxLength={2000}
           rows={5}
           placeholder={shot ? "Проверим скриншот ниже" : "Например: «Ваша карта заблокирована, для разблокировки перейдите по ссылке…»"}
-          className="mt-1 w-full resize-y border border-ink bg-[#fbf9f3] p-4 font-serif text-[18px] leading-[1.5] placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal"
+          className="field mt-2 resize-y p-4 font-serif text-[18px] leading-[1.5] placeholder:text-ink-3"
         />
         <input ref={picker} type="file" accept="image/*" hidden onChange={(e) => { attach(e.target.files?.[0]); e.target.value = ""; }} />
         {shot ? (
-          <div className="mt-2 flex items-center gap-3 border border-ink bg-[#fbf9f3] p-2">
+          <div className="mt-3 flex items-center gap-3 rounded-[12px] border-2 border-ink bg-white p-2">
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={shot.preview} alt="Выбранный скриншот" className="h-[72px] w-[72px] border border-hair object-cover" />
+            <img src={shot.preview} alt="Выбранный скриншот" className="h-[72px] w-[72px] rounded-[8px] border border-hair object-cover" />
             <p className="flex-1 text-[14px] leading-snug">Скриншот выбран. Мы прочитаем текст с картинки сами.</p>
-            <button onClick={() => setShot(null)} className="kicker min-h-[40px] border border-ink px-3 hover:bg-ink hover:!text-paper">Убрать</button>
+            <button onClick={() => setShot(null)} className="btn btn-ghost btn-sm">Убрать</button>
           </div>
-        ) : (
-          <button onClick={() => picker.current?.click()} className="mt-2 w-full border border-dashed border-ink px-4 py-3 text-left text-[14px] leading-snug hover:bg-paper-2">
-            <span className="font-medium">Или загрузите скриншот</span>
-            <span className="text-ink-2"> — переписки, SMS или чека перевода. Можно вставить из буфера обмена.</span>
-          </button>
-        )}
+        ) : null}
         {shotError && <p className="mt-2 text-[14px] text-signal">{shotError}</p>}
-        <div className="mt-2 flex flex-wrap items-center justify-between gap-3">
-          <span className="fine num">{text.length} / 2000<span className="hidden sm:inline"> · Ctrl + Enter</span></span>
+        <div className="mt-4 flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-between">
+          {!shot ? (
+            <button onClick={() => picker.current?.click()} className="btn btn-ghost">Загрузить скриншот</button>
+          ) : <span />}
           <button
             onClick={submit}
             disabled={(!text.trim() && !shot) || state === "waiting"}
-            className="bg-signal px-6 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-white hover:bg-ink disabled:opacity-40"
+            className="btn btn-primary sm:min-w-[220px]"
           >
             {state === "waiting" ? "Проверяем…" : "Проверить"}
           </button>
         </div>
+        </div>
 
-        <div className="mt-5">
-          <p className="kicker">Нет сообщения под рукой? Нажмите на пример</p>
-          <ul className="mt-2 divide-y divide-hair border-y border-hair">
+        <div className="mt-6">
+          <p className="text-[14px] text-ink-2">Нет сообщения под рукой? Попробуйте на примере:</p>
+          <div className="mt-2 flex flex-wrap gap-2">
             {EXAMPLES.map((ex) => (
-              <li key={ex}>
-                <button onClick={() => setText(ex)} className="w-full py-2 text-left text-[14px] leading-snug text-ink-2 hover:text-ink">
-                  {ex}
-                </button>
-              </li>
+              <button key={ex.label} onClick={() => { setShot(null); setText(ex.text); }} className="chip">{ex.label}</button>
             ))}
-          </ul>
+          </div>
         </div>
       </div>
 
-      <aside aria-live="polite">
-        <SectionHead title="Ответ" />
+      <aside aria-live="polite" className="card card-plain self-start lg:sticky lg:top-6">
+        <p className="kicker !text-ink">Ответ</p>
+        <div className="mt-3" />
 
         {state === "idle" && <p className="text-[14px] leading-relaxed text-ink-3">Здесь появится ответ: мошенники это или нет, по каким признакам это видно и что делать.</p>}
 

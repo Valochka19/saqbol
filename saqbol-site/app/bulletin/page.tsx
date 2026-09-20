@@ -65,7 +65,7 @@ ${top.map((k, i) => { const g = SCHEME_GUIDE[k]; return `<h3 style="font-size:16
     setTimeout(() => setCopied(false), 2000);
   }
 
-  const btn = "border border-ink px-4 py-2 font-mono text-[12px] uppercase tracking-[0.08em] hover:bg-ink hover:text-paper";
+  const btn = "btn btn-ghost btn-sm";
 
   return (
     <div>
@@ -79,7 +79,7 @@ ${top.map((k, i) => { const g = SCHEME_GUIDE[k]; return `<h3 style="font-size:16
           </p>
         </div>
         <div className="flex flex-wrap content-start gap-2">
-          <button onClick={() => window.print()} className="bg-signal px-4 py-2 font-mono text-[12px] uppercase tracking-[0.08em] text-white hover:bg-ink">
+          <button onClick={() => window.print()} className="btn btn-primary btn-sm">
             Распечатать или сохранить PDF
           </button>
           <button onClick={() => download(`saqbol-pamyatka-${issue}.doc`, asWord(), "application/msword")} className={btn}>Скачать для Word</button>

@@ -2,7 +2,6 @@
 
 import type { Timestamp } from "firebase/firestore";
 import { useState } from "react";
-import { SectionHead } from "@/components/Data";
 import { ask, ASK_ERRORS } from "@/lib/ask";
 import { CATEGORY, fmtDate, KIND } from "@/lib/labels";
 import type { Kind } from "@/lib/summary";
@@ -54,8 +53,9 @@ export function LookupPanel() {
           на него другие люди.
         </p>
 
-        <label htmlFor="lookup" className="kicker mt-4 block sm:mt-6">Номер, карта, ссылка или @аккаунт</label>
-        <div className="mt-1 flex flex-col gap-2 sm:flex-row">
+        <div className="card mt-5">
+        <label htmlFor="lookup" className="kicker block">Номер, карта, ссылка или @аккаунт</label>
+        <div className="mt-2 flex flex-col gap-3 sm:flex-row">
           <input
             id="lookup"
             value={value}
@@ -65,23 +65,24 @@ export function LookupPanel() {
             inputMode="text"
             autoComplete="off"
             placeholder="+7 7__ ___ __ __"
-            className="num w-full border border-ink bg-[#fbf9f3] px-4 py-3 text-[20px] placeholder:text-ink-3 focus:outline-none focus:ring-2 focus:ring-signal"
+            className="field num px-4 py-3 text-[20px] placeholder:text-ink-3"
           />
           <button
             onClick={() => submit()}
             disabled={!value.trim() || state === "waiting"}
-            className="shrink-0 bg-signal px-6 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-white hover:bg-ink disabled:opacity-40"
+            className="btn btn-primary shrink-0"
           >
             {state === "waiting" ? "Ищем…" : "Проверить"}
           </button>
         </div>
-        <p className="fine mt-2">Введённое нигде не сохраняется и в базу не попадает.</p>
+        <p className="mt-3 text-[13px] text-ink-3">Введённое нигде не сохраняется и в базу не попадает.</p>
+        </div>
 
         <div className="mt-5">
-          <p className="kicker">Попробуйте на примере</p>
+          <p className="text-[14px] text-ink-2">Попробуйте на примере:</p>
           <div className="mt-2 flex flex-wrap gap-2">
             {EXAMPLES.map((ex) => (
-              <button key={ex} onClick={() => { setValue(ex); submit(ex); }} className="num border border-ink px-3 py-1 text-[14px] hover:bg-ink hover:text-paper">
+              <button key={ex} onClick={() => { setValue(ex); submit(ex); }} className="chip num">
                 {ex}
               </button>
             ))}
@@ -89,8 +90,8 @@ export function LookupPanel() {
         </div>
       </div>
 
-      <aside aria-live="polite">
-        <SectionHead title="Ответ" />
+      <aside aria-live="polite" className="card card-plain self-start lg:sticky lg:top-6">
+        <p className="kicker mb-3 !text-ink">Ответ</p>
         {state === "idle" && <p className="text-[14px] leading-relaxed text-ink-3">Здесь появится ответ: жаловались ли на этот номер и сколько человек.</p>}
         {state === "waiting" && <p className="kicker">Ищем в базе…</p>}
         {state === "done" && error && <p className="text-[14px] leading-relaxed text-ink-2">{error}</p>}

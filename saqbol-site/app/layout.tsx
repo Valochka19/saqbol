@@ -4,6 +4,7 @@ import "./globals.css";
 import { Masthead } from "@/components/Masthead";
 import { Footer } from "@/components/Footer";
 import { MobileNav } from "@/components/MobileNav";
+import { ServiceStatus } from "@/components/ServiceStatus";
 
 // Все три гарнитуры содержат полную кириллицу с казахскими буквами
 const serif = PT_Serif({ variable: "--font-pt-serif", weight: ["400", "700"], subsets: ["latin", "cyrillic", "cyrillic-ext"] });
@@ -28,6 +29,7 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
       <body className="min-h-screen">
         <div className="mx-auto flex min-h-screen max-w-[1180px] flex-col px-4 pb-[calc(64px+env(safe-area-inset-bottom))] sm:px-8 sm:pb-0">
           <Masthead />
+          <ServiceStatus />
           <main className="flex-1 py-5 sm:py-8">{children}</main>
           <Footer />
         </div>

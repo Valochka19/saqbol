@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { SectionHead } from "@/components/Data";
+import { TrainerModes } from "@/components/TrainerModes";
 import { CERT_MIN_CASES, certStats, EMPTY, loadProgress, pickShift, QUESTS, rankOf, saveProgress, xpFor, type Progress, type QuizCase } from "@/lib/trainer";
 
 type Answer = { case: QuizCase; saidScam: boolean; right: boolean; gained: number };
@@ -77,35 +77,23 @@ export default function Trainer() {
   return (
     <div className="grid gap-x-10 gap-y-10 lg:grid-cols-[1.6fr_1fr]">
       <div>
-        <p className="kicker">Тренажёр</p>
-        <h1 className="mt-2 font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Мошенник или нет?</h1>
+        <TrainerModes active="cases" />
+        <h1 className="font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Мошенник или нет?</h1>
 
         {!shift && (
           <div className="mt-4">
             <p className="max-w-[58ch] text-[16px] leading-relaxed text-ink-2">
-              Вы — дежурный аналитик антифрод-службы. На стол ложатся сообщения, которые люди получили сегодня. По
-              каждому нужно вынести решение. Половина кейсов — трудные: без ссылок, без слова «срочно», а иногда и
-              настоящее сообщение банка выглядит как угроза. После ответа SaqBol покажет свой разбор.
+              Вам показывают сообщение — вы решаете, обман это или нет. После ответа увидите разбор. Половина
+              сообщений трудные: без ссылок и без слова «срочно».
             </p>
             <button
               onClick={start}
               disabled={!all.length}
-              className="mt-6 bg-ink px-6 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-paper hover:bg-signal disabled:opacity-40"
+              className="btn btn-primary mt-6"
             >
               {progress.shifts ? "Заступить на смену" : "Начать первую смену"} · 8 кейсов
             </button>
 
-            <div className="mt-8 border border-ink p-5">
-              <p className="kicker !text-signal">Новое</p>
-              <p className="mt-1 font-serif text-[22px] font-bold leading-snug">Разговор с мошенником</p>
-              <p className="mt-1 max-w-[56ch] text-[14px] leading-relaxed text-ink-2">
-                Читать чужие сообщения легко. А если звонят вам и торопят? Нейросеть сыграет мошенника, вы — попробуете
-                не поддаться. В конце — разбор приёмов, которыми на вас давили.
-              </p>
-              <Link href="/trainer/call/" className="mt-3 inline-block border border-ink px-5 py-2 font-mono text-[12px] uppercase tracking-[0.1em] hover:bg-ink hover:text-paper">
-                Принять звонок
-              </Link>
-            </div>
           </div>
         )}
 
@@ -125,7 +113,7 @@ export default function Trainer() {
             </div>
 
             {/* Бланк сообщения */}
-            <div className="relative mt-5 border border-ink bg-[#fbf9f3] p-5 sm:p-7">
+            <div className="card relative mt-5 sm:!p-7">
               <p className="kicker border-b border-hair pb-2">Входящее сообщение · № {String(current.id).padStart(4, "0")}</p>
               <p className="mt-4 whitespace-pre-wrap font-serif text-[19px] leading-[1.5] sm:text-[21px]">{current.text}</p>
               {last && (
@@ -136,11 +124,11 @@ export default function Trainer() {
             </div>
 
             {!last ? (
-              <div className="mt-4 grid grid-cols-2 gap-2">
-                <button onClick={() => answer(true)} className="border border-signal bg-signal px-4 py-4 font-mono text-[13px] uppercase tracking-[0.1em] text-white hover:bg-ink hover:border-ink">
+              <div className="mt-5 grid grid-cols-2 gap-3">
+                <button onClick={() => answer(true)} className="btn btn-primary">
                   Мошенники <span className="ml-2 hidden opacity-60 sm:inline">[M]</span>
                 </button>
-                <button onClick={() => answer(false)} className="border border-ink px-4 py-4 font-mono text-[13px] uppercase tracking-[0.1em] hover:bg-ink hover:text-paper">
+                <button onClick={() => answer(false)} className="btn btn-ghost">
                   Обычное сообщение <span className="ml-2 hidden opacity-60 sm:inline">[O]</span>
                 </button>
               </div>
@@ -164,7 +152,7 @@ export default function Trainer() {
                   )}
                   <p className="mt-2 text-[15px] leading-snug text-ink-2">{current.advice}</p>
                 </div>
-                <button onClick={forward} className="mt-5 bg-ink px-6 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-paper hover:bg-signal">
+                <button onClick={forward} className="btn btn-primary mt-5">
                   {step + 1 >= shift!.length ? "Сдать смену" : "Следующий кейс"} <span className="ml-2 hidden opacity-60 sm:inline">[Enter]</span>
                 </button>
               </div>
@@ -196,7 +184,7 @@ export default function Trainer() {
                 </ul>
               </div>
             )}
-            <button onClick={start} className="mt-6 bg-ink px-6 py-3 font-mono text-[13px] uppercase tracking-[0.1em] text-paper hover:bg-signal">
+            <button onClick={start} className="btn btn-primary mt-6">
               Ещё одна смена
             </button>
           </div>
@@ -204,8 +192,9 @@ export default function Trainer() {
       </div>
 
       {/* Личное дело */}
-      <aside>
-        <SectionHead title="Личное дело" note="хранится только в этом браузере" />
+      <aside className="space-y-6">
+        <div className="card card-plain">
+        <p className="kicker mb-2 !text-ink">Ваш прогресс</p>
         <p className="font-serif text-[26px] font-bold leading-tight">{rank.title}</p>
         <p className="num mt-1 text-[14px] text-ink-2">
           {progress.xp} очков{rank.next && <> · до звания «{rank.next.title}» — {rank.toNext}</>}
@@ -226,7 +215,9 @@ export default function Trainer() {
           ))}
         </dl>
 
-        <div className="mt-8 border border-ink p-4">
+        </div>
+
+        <div className="card card-plain">
           <p className="kicker !text-signal">Сертификат</p>
           <p className="mt-1 font-serif text-[19px] font-bold leading-snug">
             {certStats(progress, all).eligible ? "Сертификат готов к выдаче" : "Получите именной сертификат"}
@@ -234,13 +225,13 @@ export default function Trainer() {
           <p className="mt-1 text-[13px] leading-snug text-ink-2">
             Нужно верно разобрать {CERT_MIN_CASES} ситуаций из 40 и один раз устоять в разговоре с мошенником. Сейчас: {solved} и {progress.callsWon}.
           </p>
-          <Link href="/certificate/" className="mt-3 inline-block bg-ink px-4 py-2 font-mono text-[12px] uppercase tracking-[0.08em] text-paper hover:bg-signal">
+          <Link href="/certificate/" className="btn btn-primary btn-sm mt-3">
             {certStats(progress, all).eligible ? "Получить" : "Подробнее"}
           </Link>
         </div>
 
-        <div className="mt-8">
-          <SectionHead title="Дела в производстве" />
+        <div className="card card-plain">
+          <p className="kicker mb-3 !text-ink">Задания</p>
           <ul className="space-y-4">
             {QUESTS.map((q) => {
               const done = q.progress(progress, all);

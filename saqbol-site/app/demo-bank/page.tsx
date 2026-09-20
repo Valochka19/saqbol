@@ -166,7 +166,7 @@ export default function DemoBank() {
               <input id="rcp" value={recipient} onChange={(e) => { setRecipient(e.target.value); setStory(null); reset(); }} onKeyDown={(e) => e.key === "Enter" && transfer()}
                 autoComplete="off" placeholder="+7 7__ ___ __ __" className="num w-full min-w-0 border border-ink bg-[#fbf9f3] px-3 py-2 text-[16px] focus:outline-none focus:ring-2 focus:ring-signal" />
               <button onClick={transfer} disabled={!recipient.trim() || stage === "checking"}
-                className="shrink-0 bg-signal px-5 py-2 font-mono text-[13px] uppercase tracking-[0.1em] text-white hover:bg-ink disabled:opacity-40">
+                className="btn btn-primary btn-sm shrink-0">
                 {stage === "checking" ? "Идёт…" : "Перевести"}
               </button>
             </div>

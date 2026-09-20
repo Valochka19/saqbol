@@ -1,6 +1,6 @@
 "use client";
 
-import { DailyChart, Figures, IndicatorTable, SchemeBars, SectionHead, Tape } from "@/components/Data";
+import { DailyChart, Figures, IndicatorTable, SchemeBars, Tape } from "@/components/Data";
 import { fmtTime, INPUT_TYPE, KIND } from "@/lib/labels";
 import { useSummary, type Kind } from "@/lib/summary";
 
@@ -28,49 +28,44 @@ export default function Monitor() {
   if (!summary) return <p className="kicker py-16">Получаем данные…</p>;
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-6">
       <header className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <p className="kicker">Центр мониторинга · для антифрод-службы</p>
-          <h1 className="mt-2 font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Что рассылают прямо сейчас</h1>
+          <h1 className="font-serif text-[28px] font-bold leading-[1.08] sm:text-[44px]">Что рассылают прямо сейчас</h1>
+          <p className="mt-2 text-[15px] text-ink-2">Экран антифрод-службы банка. Обновляется сам, как только кто-то проверил сообщение.</p>
         </div>
-        <p className="fine">Обновлено в {fmtTime(summary.updated_at)} · страница обновляется сама</p>
+        <p className="chip !cursor-default">обновлено в {fmtTime(summary.updated_at)}</p>
       </header>
 
       <section>
-        <div className="rule" />
         <Figures totals={summary.totals} />
-        <Tape feed={summary.feed} />
+        <div className="mt-4"><Tape feed={summary.feed} /></div>
       </section>
 
-      <section className="grid gap-x-10 gap-y-10 lg:grid-cols-[1.35fr_1fr]">
-        <div>
-          <SectionHead title="Проверки и угрозы по дням" note="14 дней, время Астаны" />
+      <section className="grid gap-6 lg:grid-cols-[1.35fr_1fr]">
+        <div className="card card-plain">
+          <p className="mb-3 font-serif text-[20px] font-bold">Проверки и угрозы по дням</p>
           <DailyChart daily={summary.daily} />
         </div>
-        <div>
-          <SectionHead title="Схемы" note="доля среди выявленных угроз" />
-          <SchemeBars categories={summary.categories} />
+        <div className="card card-plain">
+          <p className="mb-3 font-serif text-[20px] font-bold">Какие схемы идут чаще</p>
+          <SchemeBars categories={summary.categories} limit={6} />
         </div>
       </section>
 
-      <section>
-        <SectionHead title="База индикаторов" note="25 с наибольшим числом заявителей · номера замаскированы" />
+      <section className="card card-plain">
+        <p className="font-serif text-[20px] font-bold">Номера и сайты мошенников</p>
+        <p className="mb-4 mt-1 text-[14px] text-ink-2">Чем больше разных людей пожаловались, тем выше риск. Номера здесь скрыты — банк видит их целиком.</p>
         <IndicatorTable rows={[...summary.top_indicators].sort((a, b) => b.risk - a.risk)} filterable />
-        <p className="mt-3 max-w-[78ch] text-[13px] leading-relaxed text-ink-2">
-          Риск от 1 до 99 считается по прозрачной формуле: число независимых заявителей, давность последней жалобы и тип
-          схемы. Статус «на проверке» означает сигнал для аналитика, а не обвинение: подтвердить или отклонить индикатор
-          может только сотрудник банка. Банк-участник получает те же данные без маскировки по API.
-        </p>
       </section>
 
-      <section className="grid gap-x-10 gap-y-10 sm:grid-cols-2">
-        <div>
-          <SectionHead title="Что попадает в базу" />
+      <section className="grid gap-6 sm:grid-cols-2">
+        <div className="card card-plain">
+          <p className="mb-2 font-serif text-[20px] font-bold">Что попадает в базу</p>
           <Breakdown data={summary.kinds} labels={KIND as Record<Kind, string>} />
         </div>
-        <div>
-          <SectionHead title="Как присылают сообщения" />
+        <div className="card card-plain">
+          <p className="mb-2 font-serif text-[20px] font-bold">Как присылают сообщения</p>
           <Breakdown data={summary.input_types} labels={INPUT_TYPE} />
         </div>
       </section>

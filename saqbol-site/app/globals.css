@@ -122,3 +122,69 @@ body {
   .cert { break-inside: avoid; }
   body:has(.cert) { zoom: 0.92; }
 }
+
+/* ───────── Компоненты: тот же почерк, что в приложении SaqBol ─────────
+   Толстая обводка, жёсткая тень, скруглённые углы. Кнопка выглядит как кнопка и «вдавливается» при нажатии. */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 50px;
+  padding: 0 24px;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.15;
+  text-align: center;
+  cursor: pointer;
+  box-shadow: 4px 4px 0 var(--ink);
+  transition: transform 0.08s ease, box-shadow 0.08s ease, background-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+.btn:hover { transform: translate(-1px, -1px); box-shadow: 5px 5px 0 var(--ink); }
+.btn:active { transform: translate(3px, 3px); box-shadow: 1px 1px 0 var(--ink); }
+.btn:disabled, .btn[aria-disabled="true"] { opacity: 0.45; pointer-events: none; transform: translate(2px, 2px); box-shadow: 2px 2px 0 var(--ink); }
+.btn-primary { background: var(--signal); color: #fff; }
+.btn-ink { background: var(--ink); color: var(--paper); box-shadow: 4px 4px 0 var(--signal); }
+.btn-ink:hover { box-shadow: 5px 5px 0 var(--signal); }
+.btn-ink:active { box-shadow: 1px 1px 0 var(--signal); }
+.btn-ghost { background: #fbf9f3; color: var(--ink); }
+.btn-sm { min-height: 42px; padding: 0 16px; font-size: 14.5px; border-radius: 10px; box-shadow: 3px 3px 0 var(--ink); }
+.btn-sm.btn-ink { box-shadow: 3px 3px 0 var(--signal); }
+.btn-block { display: flex; width: 100%; }
+
+.card {
+  background: #fbf9f3;
+  border: 2.5px solid var(--ink);
+  border-radius: 16px;
+  box-shadow: 6px 6px 0 var(--ink);
+  padding: 22px;
+}
+.card-plain { box-shadow: none; }
+.card-signal { background: var(--signal); color: #fff; }
+.card-ink { background: var(--ink); color: var(--paper); box-shadow: 6px 6px 0 var(--signal); }
+@media (max-width: 639px) { .card { padding: 16px; box-shadow: 4px 4px 0 var(--ink); border-radius: 14px; } .card-ink { box-shadow: 4px 4px 0 var(--signal); } }
+
+.field {
+  width: 100%;
+  background: #fff;
+  border: 2.5px solid var(--ink);
+  border-radius: 12px;
+  transition: box-shadow 0.12s ease;
+}
+.field:focus { outline: none; box-shadow: 0 0 0 3px color-mix(in srgb, var(--signal) 35%, transparent); }
+
+/* Переключатель из двух-трёх вариантов */
+.seg { display: inline-grid; grid-auto-flow: column; grid-auto-columns: 1fr; gap: 4px; padding: 4px; background: var(--paper-2); border: 2.5px solid var(--ink); border-radius: 14px; }
+.seg > button { min-height: 42px; padding: 0 16px; border-radius: 9px; font-family: var(--font-plex-sans), sans-serif; font-size: 15px; font-weight: 600; color: var(--ink-2); transition: background-color 0.15s ease, color 0.15s ease; }
+.seg > button[aria-selected="true"], .seg > button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.seg > button:not([aria-selected="true"]):not([aria-pressed="true"]):hover { background: #fbf9f3; color: var(--ink); }
+
+/* Небольшая метка-плашка */
+.chip { display: inline-flex; align-items: center; min-height: 36px; padding: 0 14px; border: 2px solid var(--ink); border-radius: 999px; background: #fbf9f3; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.15s ease, color 0.15s ease; }
+.chip:hover, .chip[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+
+@media print { .btn, .seg, .chip { display: none !important; } .card { box-shadow: none; } }

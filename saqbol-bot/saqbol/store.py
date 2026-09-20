@@ -137,6 +137,11 @@ async def log_check(verdict: str, confidence: int, scheme: str, source: str, lan
     await _agg_ref(db).set(agg, merge=True)
 
 
+async def heartbeat() -> None:
+    """Сайт и приложение смотрят на эту отметку: если она старая, сервис проверки выключен."""
+    await _get_db().collection("public").document("status").set({"alive_at": datetime.now(timezone.utc)})
+
+
 def _agg_ref(db):
     return db.collection("stats").document("aggregate")
 

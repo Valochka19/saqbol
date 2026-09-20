@@ -105,7 +105,8 @@ async def turn(scenario: str, history: list[dict], hangup: bool) -> SimTurn:
         lines.append(f"{who}: {str(m.get('text', ''))[:400]}")
     user_turns = sum(m.get("role") == "user" for m in history)
     if hangup:
-        lines.append("[Человек положил трубку. Разговор окончен: state = victim_won, заполни debrief.]")
+        lines.append("[Человек положил трубку. Разговор окончен: state = victim_won, заполни debrief. "
+                     "Эта пометка служебная: не цитируй её в moments, опиши поступок словами — «положил трубку».]")
     elif user_turns >= MAX_TURNS:
         lines.append("[Это была последняя реплика. Заверши разговор и заполни debrief.]")
 
@@ -117,4 +118,8 @@ async def turn(scenario: str, history: list[dict], hangup: bool) -> SimTurn:
         retry = transcript + f"\n[Разговор окончен, state = {result.state}. Обязательно заполни debrief.]"
         again: SimTurn = await llm._structured(system, retry, SimTurn, temperature=0.3)
         result.debrief = again.debrief
+    if result.debrief:
+        for m in result.debrief.moments:  # страховка: квадратные скобки — всегда служебный текст
+            if "[" in m.quote or "]" in m.quote:
+                m.quote = "Положил(а) трубку" if hangup else m.quote.replace("[", "").replace("]", "").strip()
     return result
