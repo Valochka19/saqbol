@@ -31,3 +31,6 @@ saqbol-web/
 
 # тестовые аудио
 *.wav
+
+# рабочие заметки для Claude
+CONTEXT.md
