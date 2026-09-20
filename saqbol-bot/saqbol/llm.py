@@ -94,6 +94,30 @@ async def classify_image(data: bytes, mime: str) -> ImageVerdict:
     return await _structured(SYSTEM_PROMPT, IMAGE_TASK, ImageVerdict, image=(data, mime))
 
 
+class AudioVerdict(LLMVerdict):
+    transcript: str = Field(description="Дословная расшифровка речи. Пустая строка, если речи нет")
+    gist: str = Field(description="О чём говорят и чего хотят от слушателя, 1–2 предложения простыми словами")
+    is_speech: bool = Field(description="true, если в записи есть разборчивая речь; false — если тишина, музыка или шум")
+
+
+AUDIO_TASK = (
+    "Это голосовое сообщение или запись телефонного разговора, которую человек получил и просит проверить. "
+    "Расшифруй речь дословно в transcript, в gist коротко перескажи, о чём говорят и чего хотят от слушателя, "
+    "и оцени, мошенничество ли это, по тем же правилам, что и для текстового сообщения. "
+    "Слушай не только слова, но и манеру: заученный текст без пауз, давление и спешка, уход от прямых вопросов, "
+    "фоновый шум колл-центра, обещание лёгкого заработка с просьбой сначала что-то оплатить или «зарегистрироваться». "
+    "Если в записи несколько голосов, оценивай того, кто что-то предлагает или требует. "
+    "Если разборчивой речи нет, ставь is_speech = false."
+)
+
+
+async def classify_audio(data: bytes, mime: str) -> AudioVerdict:
+    """Проверка голосового или записи звонка: модель слушает запись сама, отдельная расшифровка не нужна."""
+    if PROVIDER != "gemini":
+        raise LLMUnavailable("аудио умеет слушать только Gemini")
+    return await _structured(SYSTEM_PROMPT, AUDIO_TASK, AudioVerdict, image=(data, mime))
+
+
 async def _structured(system: str, user_content: str, schema, temperature: float = 0,
                       image: tuple[bytes, str] | None = None):
     """Один вызов модели со строго структурированным ответом. Общий для проверки, скриншотов и симулятора."""

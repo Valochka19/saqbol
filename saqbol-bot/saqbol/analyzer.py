@@ -122,3 +122,19 @@ async def analyze_image(data: bytes, mime: str) -> tuple[Verdict, str]:
         advice=v.advice, language=v.language, category=v.category if verdict != "safe" else "none",
         source="rules+llm", rule_score=r.score, urls=r.urls,
     ), v.extracted_text
+
+
+async def analyze_audio(data: bytes, mime: str) -> tuple[Verdict, str, str]:
+    """Проверка голосового или записи звонка. Возвращает вердикт, расшифровку и короткий пересказ."""
+    if not llm.is_configured():
+        raise llm.LLMUnavailable("для голосовых нужна модель")
+    v = await llm.classify_audio(data, mime)
+    if not v.is_speech:
+        raise NotAMessage()
+
+    r = rules.analyze(v.transcript)
+    return Verdict(
+        verdict=v.verdict, confidence=max(0, min(99, v.confidence)), scheme=v.scheme, red_flags=v.red_flags[:4],
+        advice=v.advice, language=v.language, category=v.category if v.verdict != "safe" else "none",
+        source="rules+llm", rule_score=r.score, urls=r.urls,
+    ), v.transcript, v.gist

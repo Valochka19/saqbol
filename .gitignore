@@ -28,3 +28,6 @@ saqbol-bot/eval/results/make_quiz.log
 saqbol-web/
 *.pdf
 .git-create-next-app.bak/
+
+# тестовые аудио
+*.wav

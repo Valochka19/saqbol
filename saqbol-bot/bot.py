@@ -20,7 +20,7 @@ from aiogram.filters import Command, CommandStart  # noqa: E402
 from aiogram.types import Message  # noqa: E402
 
 from saqbol import chat_features, indicators, llm, store, webqueue  # noqa: E402
-from saqbol.analyzer import NotAMessage, Verdict, analyze, analyze_image  # noqa: E402
+from saqbol.analyzer import NotAMessage, Verdict, analyze, analyze_audio, analyze_image  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
 log = logging.getLogger("saqbol")
@@ -38,6 +38,7 @@ START_TEXT = "\n".join([
     "Пришлите мне то, что вызывает сомнения, — скажу, мошенники это или нет, и объясню почему:",
     "• текст SMS или сообщения из мессенджера",
     "• скриншот переписки или чека",
+    "• голосовое сообщение или запись звонка",
     "• номер телефона, карты или ссылку — перед тем как переводить деньги",
     "",
     "Если на номер уже жаловались другие люди, я скажу об этом. Сообщения не сохраняю.",
@@ -160,6 +161,32 @@ async def on_image(message: Message) -> None:
     await finish(message, verdict, text, "photo")
 
 
+@common.message(F.voice | F.audio | F.video_note)
+async def on_audio(message: Message) -> None:
+    """Голосовое, запись звонка или «кружок»: модель слушает запись и пересказывает, чего от человека хотят."""
+    if await too_fast(message):
+        return
+    source = message.voice or message.audio or message.video_note
+    if (source.file_size or 0) > 19_000_000 or (source.duration or 0) > 900:
+        await message.reply("Запись слишком длинная. Пришлите фрагмент до 15 минут.")
+        return
+    mime = "video/mp4" if message.video_note else (source.mime_type or "audio/ogg")
+
+    note = await message.reply("🎧 Слушаю запись…")
+    await message.bot.send_chat_action(message.chat.id, ChatAction.TYPING)
+    buffer = await message.bot.download(source)
+    try:
+        verdict, transcript, gist = await analyze_audio(buffer.read(), mime)
+    except NotAMessage:
+        await note.edit_text("Не слышу в записи разборчивой речи. Попробуйте прислать другую запись.")
+        return
+    except llm.LLMUnavailable:
+        await note.edit_text("Сейчас не могу прослушать запись. Перескажите текстом, что вам говорят, — проверю.")
+        return
+    await note.edit_text(f"🎧 <b>О чём говорят:</b> {escape(gist)}")
+    await finish(message, verdict, transcript, "voice")
+
+
 @common.message(F.text | F.caption)
 async def on_message(message: Message) -> None:
     text = (message.text or message.caption or "").strip()
@@ -197,7 +224,7 @@ async def finish(message: Message, verdict: Verdict, text: str, input_type: str)
 
 @common.message()
 async def on_other(message: Message) -> None:
-    await message.answer("Я понимаю текст, ссылки и скриншоты. Голосовые пока нет — пришлите сообщение текстом или картинкой.")
+    await message.answer("Я понимаю текст, ссылки, скриншоты и голосовые. Пришлите что-нибудь из этого — проверю.")
 
 
 async def main() -> None:
