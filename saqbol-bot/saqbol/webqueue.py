@@ -146,6 +146,43 @@ async def _handle(doc_id: str, data: dict) -> None:
         await db.collection("web_requests").document(doc_id).delete()  # текст сообщения не храним
 
 
+PLAN_NAMES = {"team": "обучение команды", "bank": "банку и финтеху"}
+
+
+def start_leads(loop: asyncio.AbstractEventLoop, notify):
+    """Заявки со страницы тарифов: пересылаем владельцу в Telegram и помечаем, чтобы не слать дважды."""
+    from firebase_admin import firestore
+
+    db = store._get_db()
+
+    async def handle(doc_id: str, d: dict) -> None:
+        if d.get("notified"):
+            return
+        from html import escape
+
+        lines = [
+            "💼 <b>Новая заявка SaqBol</b>",
+            f"Тариф: {PLAN_NAMES.get(d.get('plan'), d.get('plan'))}",
+            f"Организация: {escape(str(d.get('org', '')))}",
+            f"Контакт: {escape(str(d.get('contact', '')))}",
+        ]
+        if d.get("note"):
+            lines.append(f"Комментарий: {escape(str(d['note']))}")
+        text = "\n".join(lines)
+        try:
+            if await notify(text):
+                await db.collection("leads").document(doc_id).update({"notified": True})
+        except Exception:
+            log.exception("Не удалось переслать заявку %s", doc_id)
+
+    def on_snapshot(_docs, changes, _read_time):
+        for change in changes:
+            if change.type.name == "ADDED":
+                asyncio.run_coroutine_threadsafe(handle(change.document.id, change.document.to_dict() or {}), loop)
+
+    return firestore.client().collection("leads").on_snapshot(on_snapshot)
+
+
 def start(loop: asyncio.AbstractEventLoop):
     """Слушатель Firestore работает в своём потоке и передаёт новые запросы в цикл бота."""
     from firebase_admin import firestore

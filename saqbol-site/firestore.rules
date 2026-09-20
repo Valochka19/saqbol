@@ -41,6 +41,15 @@ service cloud.firestore {
     match /web_results/{id} {
       allow get: if true;
     }
+    // Заявки с страницы тарифов: только создание, читает их бот
+    match /leads/{id} {
+      allow create: if request.resource.data.keys().hasOnly(['plan', 'org', 'contact', 'note', 'created_at'])
+                    && request.resource.data.created_at == request.time
+                    && request.resource.data.plan in ['team', 'bank']
+                    && request.resource.data.org is string && request.resource.data.org.size() >= 2 && request.resource.data.org.size() <= 80
+                    && request.resource.data.contact is string && request.resource.data.contact.size() >= 5 && request.resource.data.contact.size() <= 80
+                    && request.resource.data.note is string && request.resource.data.note.size() <= 400;
+    }
     // Сертификат проверяется по точному номеру (из QR-кода). Списком получить сертификаты нельзя.
     match /certificates/{id} {
       allow get: if true;

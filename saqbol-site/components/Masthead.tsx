@@ -10,12 +10,13 @@ export const NAV = [
   { href: "/trainer/", label: "Тренажёр", short: "Тренажёр" },
   { href: "/bulletin/", label: "Памятка", short: "Памятка" },
   { href: "/certificate/", label: "Сертификат", short: "Сертификат" },
-  { href: "/method/", label: "Как это работает", short: "Как это работает" },
+  { href: "/method/", label: "Как работает", short: "Как это работает" },
 ];
 export const PRO = [
   { href: "/monitor/", label: "Мониторинг" },
   { href: "/demo-bank/", label: "Демо-банк" },
   { href: "/banks/", label: "Банкам" },
+  { href: "/pricing/", label: "Тарифы" },
 ];
 
 export function isActive(path: string, href: string) {
@@ -48,7 +49,7 @@ export function Masthead() {
         </Link>
         <nav className="flex flex-1 flex-wrap items-center gap-1 text-[15px]" aria-label="Разделы">
           {[...NAV, null, ...PRO].map((item) => {
-            if (!item) return <span key="gap" className="ml-auto whitespace-nowrap pr-1 text-[13px] text-ink-3">банкам и жюри:</span>;
+            if (!item) return <span key="gap" className="ml-auto" aria-hidden />;
             const pro = PRO.some((p) => p.href === item.href);
             const active = isActive(path, item.href);
             return (
@@ -56,7 +57,7 @@ export function Masthead() {
                 key={item.href}
                 href={item.href}
                 aria-current={active ? "page" : undefined}
-                className={`whitespace-nowrap rounded-[10px] px-3 py-2 font-medium transition-colors ${
+                className={`whitespace-nowrap rounded-[10px] px-2.5 py-2 font-medium transition-colors ${
                   active ? "bg-ink text-paper" : pro ? "text-ink-2 hover:bg-paper-2 hover:text-ink" : "text-ink hover:bg-paper-2"
                 } ${pro ? "text-[14px]" : ""}`}
               >

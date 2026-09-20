@@ -116,6 +116,12 @@ async def on_start(message: Message) -> None:
     await message.answer(START_TEXT)
 
 
+@dp.message(Command("myid"))
+async def on_myid(message: Message) -> None:
+    """ID чата нужен, чтобы бот знал, кому пересылать заявки с сайта (SAQBOL_ADMIN_CHAT в .env)."""
+    await message.answer(f"ID этого чата: <code>{message.chat.id}</code>")
+
+
 async def too_fast(message: Message) -> bool:
     now = time.monotonic()
     if now - _last_request.get(message.chat.id, 0) < MIN_INTERVAL_SEC:
@@ -211,6 +217,17 @@ async def main() -> None:
         asyncio.get_running_loop().create_task(beat())
 
     bot = Bot(token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+
+    admin_chat = os.getenv("SAQBOL_ADMIN_CHAT")
+    if store.is_configured():
+        async def notify_owner(text: str) -> bool:
+            if not admin_chat:
+                log.info("Заявка с сайта получена, но SAQBOL_ADMIN_CHAT не задан — переслать некому")
+                return False
+            await bot.send_message(int(admin_chat), text)
+            return True
+
+        webqueue.start_leads(asyncio.get_running_loop(), notify_owner)
     log.info("SaqBol AI запущен, модель: %s", llm.MODEL if llm.is_configured() else "нет (только правила)")
     await dp.start_polling(bot)
 
