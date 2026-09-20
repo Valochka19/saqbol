@@ -13,13 +13,13 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-from aiogram import Bot, Dispatcher, F  # noqa: E402
+from aiogram import Bot, Dispatcher, F, Router  # noqa: E402
 from aiogram.client.default import DefaultBotProperties  # noqa: E402
 from aiogram.enums import ChatAction, ParseMode  # noqa: E402
 from aiogram.filters import Command, CommandStart  # noqa: E402
 from aiogram.types import Message  # noqa: E402
 
-from saqbol import indicators, llm, store, webqueue  # noqa: E402
+from saqbol import chat_features, indicators, llm, store, webqueue  # noqa: E402
 from saqbol.analyzer import NotAMessage, Verdict, analyze, analyze_image  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -30,15 +30,20 @@ MIN_INTERVAL_SEC = 3  # защита от спама и лишних трат н
 _last_request: dict[int, float] = {}
 
 dp = Dispatcher()
+main = Router()  # общие обработчики; подключается после chat_features, чтобы режимы чата имели приоритет
 
-START_TEXT = (
-    "👋 <b>SaqBol AI</b> — проверка сообщений на мошенничество.\n\n"
-    "Перешлите мне подозрительное SMS, сообщение из WhatsApp/Telegram, ссылку или скриншот переписки — "
-    "я скажу, мошенники это или нет, и объясню почему.\n\n"
-    "🇰🇿 Күмәнді хабарламаны немесе сілтемені маған жіберіңіз — "
-    "алаяқтық па, жоқ па, түсіндіріп беремін.\n\n"
-    "Тексты сообщений я не сохраняю."
-)
+START_TEXT = "\n".join([
+    "👋 <b>SaqBol</b> — сақ бол, «будь осторожен».",
+    "",
+    "Пришлите мне то, что вызывает сомнения, — скажу, мошенники это или нет, и объясню почему:",
+    "• текст SMS или сообщения из мессенджера",
+    "• скриншот переписки или чека",
+    "• номер телефона, карты или ссылку — перед тем как переводить деньги",
+    "",
+    "Если на номер уже жаловались другие люди, я скажу об этом. Сообщения не сохраняю.",
+    "",
+    "🇰🇿 Күмәнді хабарламаны, скриншотты немесе нөмірді жіберіңіз — алаяқтық па, жоқ па, түсіндіріп беремін.",
+])
 
 HEADERS = {
     "ru": {"scam": "🔴 <b>Похоже на мошенничество</b>", "suspicious": "🟡 <b>Подозрительно</b>",
@@ -110,13 +115,13 @@ def save_stat(v: Verdict, text_len: int) -> None:
         f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
 
-@dp.message(CommandStart())
-@dp.message(Command("help"))
+@main.message(CommandStart())
+@main.message(Command("help"))
 async def on_start(message: Message) -> None:
-    await message.answer(START_TEXT)
+    await message.answer(START_TEXT, reply_markup=chat_features.main_menu())
 
 
-@dp.message(Command("myid"))
+@main.message(Command("myid"))
 async def on_myid(message: Message) -> None:
     """ID чата нужен, чтобы бот знал, кому пересылать заявки с сайта (SAQBOL_ADMIN_CHAT в .env)."""
     await message.answer(f"ID этого чата: <code>{message.chat.id}</code>")
@@ -131,7 +136,7 @@ async def too_fast(message: Message) -> bool:
     return False
 
 
-@dp.message(F.photo | F.document.mime_type.startswith("image/"))
+@main.message(F.photo | F.document.mime_type.startswith("image/"))
 async def on_image(message: Message) -> None:
     """Скриншот переписки, SMS или чека: модель читает текст с картинки сама."""
     if await too_fast(message):
@@ -155,12 +160,14 @@ async def on_image(message: Message) -> None:
     await finish(message, verdict, text, "photo")
 
 
-@dp.message(F.text | F.caption)
+@main.message(F.text | F.caption)
 async def on_message(message: Message) -> None:
     text = (message.text or message.caption or "").strip()
     if not text or await too_fast(message):
         return
     await message.bot.send_chat_action(message.chat.id, ChatAction.TYPING)
+    if await chat_features.try_lookup(message):  # прислали только номер, карту или ссылку
+        return
     await finish(message, await analyze(text[:4000]), text, "text")
 
 
@@ -188,7 +195,7 @@ async def finish(message: Message, verdict: Verdict, text: str, input_type: str)
     await message.reply(reply)
 
 
-@dp.message()
+@main.message()
 async def on_other(message: Message) -> None:
     await message.answer("Я понимаю текст, ссылки и скриншоты. Голосовые пока нет — пришлите сообщение текстом или картинкой.")
 
@@ -229,6 +236,8 @@ async def main() -> None:
 
         webqueue.start_leads(asyncio.get_running_loop(), notify_owner)
     log.info("SaqBol AI запущен, модель: %s", llm.MODEL if llm.is_configured() else "нет (только правила)")
+    dp.include_router(chat_features.router)
+    dp.include_router(main)
     await dp.start_polling(bot)
 
 
