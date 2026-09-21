@@ -65,12 +65,26 @@ object Api {
         )
     }
 
+    data class Reported(val value: String, val reporters: Int, val risk: Int)
+
+    /** «Это были мошенники»: номер уходит в общую базу. device — постоянный код установки, по нему считают независимых заявителей. */
+    suspend fun report(number: String, device: String): Reported {
+        fun str(v: String) = JSONObject().put("stringValue", v)
+        val map = JSONObject().put("mapValue", JSONObject().put("fields",
+            JSONObject().put("number", str(number.take(40))).put("device", str(device))))
+        val r = ask("report", map, timeoutMs = 15_000)
+        return Reported(r.optString("value"), r.optInt("reporters"), r.optInt("risk"))
+    }
+
+    private suspend fun ask(field: String, value: String, timeoutMs: Long): JSONObject =
+        ask(field, JSONObject().put("stringValue", value), timeoutMs)
+
     /** Кладём запрос в очередь и опрашиваем ответ. */
-    private suspend fun ask(field: String, value: String, timeoutMs: Long): JSONObject = withContext(Dispatchers.IO) {
+    private suspend fun ask(field: String, value: JSONObject, timeoutMs: Long): JSONObject = withContext(Dispatchers.IO) {
         val id = UUID.randomUUID().toString().replace("-", "").take(20)
         val write = JSONObject()
             .put("update", JSONObject().put("name", "$DOCS/web_requests/$id")
-                .put("fields", JSONObject().put(field, JSONObject().put("stringValue", value))))
+                .put("fields", JSONObject().put(field, value)))
             .put("updateTransforms", JSONArray().put(JSONObject().put("fieldPath", "created_at").put("setToServerValue", "REQUEST_TIME")))
             .put("currentDocument", JSONObject().put("exists", false))
         http("POST", "$BASE:commit?key=$KEY", JSONObject().put("writes", JSONArray().put(write)))
@@ -137,6 +151,7 @@ object Api {
     fun errorText(code: String): String = when (code) {
         "timeout" -> "Сервис не ответил. Проверьте интернет и попробуйте ещё раз."
         "busy" -> "Слишком много запросов. Повторите через минуту."
+        "limit" -> "На сегодня достаточно: с одного телефона принимаем пять жалоб в сутки."
         "unrecognized" -> "Не вижу здесь номера телефона, карты или ссылки."
         "not_a_message" -> "Не вижу на картинке сообщения. Выберите скриншот переписки, SMS или чека."
         "network" -> "Нет связи с интернетом."

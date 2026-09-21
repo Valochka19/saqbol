@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
-<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
@@ -35,6 +36,12 @@
             </intent-filter>
         </activity>
 
+        <!-- Сканер QR: по умолчанию он горизонтальный, нам нужен обычный вертикальный экран -->
+        <activity
+            android:name="com.journeyapps.barcodescanner.CaptureActivity"
+            android:screenOrientation="portrait"
+            tools:replace="android:screenOrientation" />
+
         <!-- Проверка входящих звонков по базе SaqBol -->
         <service
             android:name=".ScamCallScreeningService"
@@ -44,5 +51,8 @@
                 <action android:name="android.telecom.CallScreeningService" />
             </intent-filter>
         </service>
+
+        <!-- Кнопки «Это мошенники / Всё нормально» в уведомлении после звонка -->
+        <receiver android:name=".AfterCallReceiver" android:exported="false" />
     </application>
 </manifest>

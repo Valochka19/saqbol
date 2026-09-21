@@ -45,6 +45,7 @@ class ScamCallScreeningService : CallScreeningService() {
         if (!CallGuard.enabled(this)) return
 
         val app = applicationContext
+        CallGuard.askAfterCall(app, number)
         scope.launch {
             val hit = runCatching { Api.lookup(number, timeoutMs = 8_000) }.getOrNull()?.firstOrNull { it.found } ?: return@launch
             CallGuard.alert(app, hit)
@@ -130,6 +131,67 @@ object CallGuard {
         shown = root
         Handler(Looper.getMainLooper()).postDelayed({ close() }, 40_000)
     }
+
+    private const val CHANNEL_ASK = "after_call"
+    const val ACTION_SCAM = "kz.saqbol.app.REPORT_SCAM"
+    const val ACTION_FINE = "kz.saqbol.app.REPORT_FINE"
+
+    /** Постоянный код установки: по нему база считает независимых заявителей. Ни с чем личным не связан. */
+    fun deviceId(ctx: Context): String {
+        val prefs = ctx.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
+        return prefs.getString("device", null)
+            ?: java.util.UUID.randomUUID().toString().replace("-", "").also { prefs.edit().putString("device", it).apply() }
+    }
+
+    private fun askId(number: String) = ("ask:" + number.filter { it.isDigit() }.takeLast(10)).hashCode()
+
+    /**
+     * Телефон как датчик сети: после звонка с незнакомого номера в шторке остаётся тихий вопрос «Кто звонил?».
+     * Одно нажатие «Это мошенники» — и номер уходит в общую базу.
+     */
+    fun askAfterCall(ctx: Context, number: String) {
+        val nm = ctx.getSystemService(NotificationManager::class.java)
+        nm.createNotificationChannel(
+            NotificationChannel(CHANNEL_ASK, "Вопрос после звонка", NotificationManager.IMPORTANCE_LOW).apply {
+                description = "После звонка с незнакомого номера: это были мошенники?"
+            },
+        )
+        fun action(name: String, label: String, code: Int) = Notification.Action.Builder(
+            null, label,
+            PendingIntent.getBroadcast(
+                ctx, askId(number) + code,
+                Intent(ctx, AfterCallReceiver::class.java).setAction(name).putExtra("number", number),
+                PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+            ),
+        ).build()
+        val n = Notification.Builder(ctx, CHANNEL_ASK)
+            .setSmallIcon(R.drawable.ic_stat_alert)
+            .setColor(0xFFC8321A.toInt())
+            .setContentTitle("Кто звонил с $number?")
+            .setContentText("Если это были мошенники — сообщите, и SaqBol предупредит остальных.")
+            .setStyle(Notification.BigTextStyle().bigText("Если это были мошенники — сообщите, и SaqBol предупредит остальных."))
+            .addAction(action(ACTION_SCAM, "Это мошенники", 1))
+            .addAction(action(ACTION_FINE, "Всё нормально", 2))
+            .setAutoCancel(true)
+            .build()
+        nm.notify(askId(number), n)
+    }
+
+    /** Итог после нажатия: то же уведомление превращается в ответ. */
+    fun afterCallResult(ctx: Context, number: String, title: String, text: String) {
+        val n = Notification.Builder(ctx, CHANNEL_ASK)
+            .setSmallIcon(R.drawable.ic_stat_alert)
+            .setColor(0xFFC8321A.toInt())
+            .setContentTitle(title)
+            .setContentText(text)
+            .setStyle(Notification.BigTextStyle().bigText(text))
+            .setTimeoutAfter(60_000)
+            .setAutoCancel(true)
+            .build()
+        ctx.getSystemService(NotificationManager::class.java).notify(askId(number), n)
+    }
+
+    fun dismissAsk(ctx: Context, number: String) = ctx.getSystemService(NotificationManager::class.java).cancel(askId(number))
 
     private fun notify(ctx: Context, hit: Api.Recipient) {
         val nm = ctx.getSystemService(NotificationManager::class.java)

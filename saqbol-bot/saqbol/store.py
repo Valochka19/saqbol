@@ -101,6 +101,21 @@ async def report(ind: Indicator, reporter: str, verdict: str, scheme: str,
     return await tx_body(db.transaction())
 
 
+DAILY_REPORT_LIMIT = int(os.getenv("SAQBOL_DAILY_LIMIT", "5"))
+
+
+async def take_daily_slot(reporter: str) -> bool:
+    """Защита от накрутки: один заявитель может отправить из приложения не больше 5 жалоб в сутки."""
+    ref = _get_db().collection("reporter_limits").document(reporter)
+    day = datetime.now(KZ_TZ).date().isoformat()
+    d = (await ref.get()).to_dict() or {}
+    used = d.get("count", 0) if d.get("day") == day else 0
+    if used >= DAILY_REPORT_LIMIT:
+        return False
+    await ref.set({"day": day, "count": used + 1})
+    return True
+
+
 async def lookup(ind: Indicator) -> Sighting | None:
     """Только посмотреть, не записывая жалобу — для сообщений, которые бот счёл безопасными."""
     snap = await _get_db().collection("indicators").document(_doc_id(ind)).get()

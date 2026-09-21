@@ -52,6 +52,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
+import com.journeyapps.barcodescanner.ScanContract
+import com.journeyapps.barcodescanner.ScanOptions
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -162,6 +164,7 @@ private fun CheckScreen(shared: String?, sharedImage: Uri?, onSharedUsed: () -> 
         }
     }
     val pickImage = rememberLauncherForActivityResult(ActivityResultContracts.GetContent()) { uri -> if (uri != null) runImage(uri) }
+    var scanned by remember { mutableStateOf<String?>(null) } // что было спрятано в QR-коде
 
     fun run() {
         val input = text.trim()
@@ -176,6 +179,15 @@ private fun CheckScreen(shared: String?, sharedImage: Uri?, onSharedUsed: () -> 
             }
             busy = false
         }
+    }
+
+    // QR-код человек прочитать не может, а мы можем: показываем, что в нём спрятано, и сразу проверяем
+    val scanQr = rememberLauncherForActivityResult(ScanContract()) { r ->
+        val content = r.contents?.trim()?.takeIf { it.isNotEmpty() } ?: return@rememberLauncherForActivityResult
+        mode = 0
+        text = content.take(2000)
+        scanned = text
+        run()
     }
 
     // Пришли через «Поделиться»: сразу подставляем текст и запускаем проверку
@@ -222,6 +234,16 @@ private fun CheckScreen(shared: String?, sharedImage: Uri?, onSharedUsed: () -> 
         BigButton(if (busy && !reading) "Проверяем…" else "Проверить", fill = Brand.Signal, enabled = !busy && text.isNotBlank()) { run() }
         if (mode == 0) {
             BigButton(if (reading) "Читаем скриншот…" else "Выбрать скриншот", fill = Brand.Ink, enabled = !busy) { pickImage.launch("image/*") }
+            BigButton("Сканировать QR-код", fill = Brand.Ink, enabled = !busy) {
+                scanQr.launch(
+                    ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setBeepEnabled(false).setOrientationLocked(true)
+                        .setPrompt("Наведите камеру на QR-код — покажем, куда он ведёт, до того как вы перейдёте"),
+                )
+            }
+        }
+
+        if (scanned != null && scanned == text && mode == 0) {
+            Text("В QR-коде было спрятано то, что вы видите в поле выше. Мы по нему не переходили — только проверили.", style = Brand.Small)
         }
 
         if (mode == 0 && result == null && !busy) {
@@ -295,6 +317,7 @@ private fun GuardScreen() {
     var enabled by remember { mutableStateOf(CallGuard.enabled(ctx)) }
     var demoBusy by remember { mutableStateOf(false) }
     var note by remember { mutableStateOf<String?>(null) }
+    var note2 by remember { mutableStateOf<String?>(null) }
 
     fun canNotify() = Build.VERSION.SDK_INT < 33 || ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) == PackageManager.PERMISSION_GRANTED
     val askRole = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { hasRole = CallGuard.hasRole(ctx) }
@@ -355,6 +378,18 @@ private fun GuardScreen() {
                 }
             }
             note?.let { Text(it, style = Brand.Small, modifier = Modifier.padding(top = 8.dp)) }
+        }
+
+        Cutout {
+            Text("ПОСЛЕ ЗВОНКА", style = Brand.Label)
+            Text("Позвонил незнакомый номер — в шторке останется вопрос «Кто звонил?». Одно нажатие «Это мошенники», и номер попадёт в общую базу: следующего человека SaqBol предупредит.", style = Brand.Body, modifier = Modifier.padding(top = 6.dp))
+            Spacer(Modifier.height(12.dp))
+            BigButton("Показать пример") {
+                if (!canNotify()) { askNotify.launch(Manifest.permission.POST_NOTIFICATIONS); return@BigButton }
+                CallGuard.askAfterCall(ctx, "+7 705 111 22 33")
+                note2 = "Готово — откройте шторку уведомлений."
+            }
+            note2?.let { Text(it, style = Brand.Small, modifier = Modifier.padding(top = 8.dp)) }
         }
 
         Text("Мы не блокируем звонки и не слушаем разговоры. Проверяется только номер, и только если его нет в ваших контактах.", style = Brand.Small)

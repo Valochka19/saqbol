@@ -4,6 +4,7 @@
 и пишет ответ в web_results под тем же id. Сам запрос с текстом сразу удаляется.
 Проверки с сайта только сверяются с общей базой и никогда её не пополняют:
 у анонимного посетителя нет личности, по которой можно отличить жалобу от накрутки.
+Приложение пополнять базу может (_report): у установки есть постоянный код и суточный лимит.
 """
 
 import asyncio
@@ -47,6 +48,36 @@ async def _lookup(value: str) -> dict:
             "status": d.get("status", "unverified") if d else "unknown",
         })
     return {"created_at": now, "items": items}
+
+
+async def _report(rep: dict) -> dict:
+    """Жалоба из приложения после звонка: «Это были мошенники».
+
+    У установки приложения есть постоянный код — по нему считаем независимых заявителей, как по аккаунту
+    в Telegram. С сайта жалобы не принимаем: там личности нет. Принимаем только телефон и не больше
+    пяти жалоб в сутки с одной установки.
+    """
+    now = datetime.now(timezone.utc)
+    phones = [i for i in indicators.extract(str(rep.get("number", ""))[:40]) if i.kind == "phone"]
+    device = str(rep.get("device", ""))
+    if not phones or len(device) < 16:
+        return {"created_at": now, "error": "unrecognized"}
+    ind = phones[0]
+    reporter = indicators.reporter_hash(f"app:{device}")
+    if not await store.take_daily_slot(reporter):
+        return {"created_at": now, "error": "limit"}
+
+    # Схему и категорию не затираем: про этот номер база может знать больше, чем человек, нажавший кнопку
+    snap = await store._get_db().collection("indicators").document(store._doc_id(ind)).get()
+    old = snap.to_dict() if snap.exists else {}
+    category = old.get("last_category", "other")
+    scheme = old.get("last_scheme") or "Подозрительный звонок"
+    s = await store.report(ind, reporter, "scam", scheme, category)
+    reporters = s.others + 1
+    await store.log_check("scam", 100, scheme, "app", "ru", "call", False, 1, category)
+    await store.publish_summary()
+    return {"created_at": now, "value": ind.display, "reporters": reporters,
+            "risk": store.risk_score(reporters, now, category, s.status)}
 
 
 TOTAL_CASES = 40
@@ -102,6 +133,9 @@ async def _handle(doc_id: str, data: dict) -> None:
 
         if "lookup" in data:
             await result_ref.set(await _lookup(str(data["lookup"])[:120]))
+            return
+        if "report" in data:
+            await result_ref.set(await _report(data["report"] if isinstance(data["report"], dict) else {}))
             return
         if "cert" in data:
             await result_ref.set(await _certificate(data["cert"]))
