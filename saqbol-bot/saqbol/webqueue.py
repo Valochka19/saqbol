@@ -9,6 +9,7 @@
 
 import asyncio
 import logging
+import os
 import time
 from datetime import datetime, timezone
 
@@ -18,7 +19,9 @@ from .analyzer import NotAMessage, analyze, analyze_image
 log = logging.getLogger("saqbol")
 
 MAX_PER_MINUTE = 20
+MAX_PER_DAY = int(os.getenv("SAQBOL_WEB_DAILY_CAP", "1500"))  # потолок расходов на модель, если очередь начнут заливать
 _recent: list[float] = []
+_today: list[float] = []
 
 
 async def _lookup(value: str) -> dict:
@@ -126,10 +129,12 @@ async def _handle(doc_id: str, data: dict) -> None:
     try:
         now = time.monotonic()
         _recent[:] = [t for t in _recent if now - t < 60]
-        if len(_recent) >= MAX_PER_MINUTE:
+        _today[:] = [t for t in _today if now - t < 86400]
+        if len(_recent) >= MAX_PER_MINUTE or len(_today) >= MAX_PER_DAY:
             await result_ref.set({"error": "busy", "created_at": datetime.now(timezone.utc)})
             return
         _recent.append(now)
+        _today.append(now)
 
         if "lookup" in data:
             await result_ref.set(await _lookup(str(data["lookup"])[:120]))
