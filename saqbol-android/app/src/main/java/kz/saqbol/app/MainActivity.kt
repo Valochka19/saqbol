@@ -118,17 +118,14 @@ fun App(shared: String?, sharedImage: Uri?, onSharedUsed: () -> Unit) {
             }
         }
 
-        Box(Modifier.fillMaxWidth().height(2.dp).background(Brand.Ink))
-        Row(Modifier.fillMaxWidth()) {
-            TABS.forEachIndexed { i, title ->
-                Box(
-                    Modifier.weight(1f).background(if (tab == i) Brand.Ink else Brand.Paper).clickable { tab = i }.padding(vertical = 16.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text(title.uppercase(), style = Brand.Label.copy(color = if (tab == i) Brand.Paper else Brand.Ink, fontSize = 12.sp))
-                }
-            }
+        // Нижнее меню-штамп; точка на «Защите» показывает, включена ли защита звонков
+        val ctx = LocalContext.current
+        var guardOn by remember { mutableStateOf(CallGuard.hasRole(ctx) && CallGuard.enabled(ctx)) }
+        LifecycleResumeEffect(tab) {
+            guardOn = CallGuard.hasRole(ctx) && CallGuard.enabled(ctx)
+            onPauseOrDispose {}
         }
+        NavBar(TABS, tab, guardOn) { tab = it }
     }
 }
 
