@@ -143,9 +143,11 @@ fun App(shared: String?, sharedImage: Uri?, startTab: Int = 0, onSharedUsed: () 
 private fun screen() = Modifier.fillMaxSize()
 
 @Composable
-private fun ScreenColumn(content: @Composable () -> Unit) {
+private fun ScreenColumn(revealOn: Any? = null, content: @Composable () -> Unit) {
     val scroll = rememberScrollState()
     LaunchedEffect(Unit) { if (ScrollDebug.toEnd) { delay(1500); scroll.animateScrollTo(scroll.maxValue) } }
+    // пришёл ответ — плавно доезжаем до него, иначе он остаётся за краем экрана
+    LaunchedEffect(revealOn) { if (revealOn != null) { delay(120); scroll.animateScrollTo(scroll.maxValue) } }
     Column(
         screen().verticalScroll(scroll).padding(horizontal = 20.dp, vertical = 18.dp),
         verticalArrangement = Arrangement.spacedBy(16.dp),
@@ -230,7 +232,7 @@ private fun CheckScreen(shared: String?, sharedImage: Uri?, onSharedUsed: () -> 
         }
     }
 
-    ScreenColumn {
+    ScreenColumn(revealOn = result) {
         ScreenHeader("ПРОВЕРКА", if (mode == 0) "Пришло странное сообщение?" else "Переводите незнакомцу?")
         Segmented(listOf("Сообщение", "Номер или ссылка"), mode) { mode = it; result = null; text = ""; scanned = null }
 
