@@ -691,7 +691,7 @@ private fun SummaryScreen() {
                 s.feed.take(8).forEach { f ->
                     val scam = f.verdict != "safe"
                     Row(Modifier.fillMaxWidth().padding(top = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                        Box(Modifier.size(9.dp).clip(CircleShape).background(if (scam) Brand.Signal else Brand.Hair))
+                        Box(Modifier.size(8.dp).rotate(-10f).background(if (scam) Brand.Signal else Brand.Hair))
                         Spacer(Modifier.width(10.dp))
                         Text(time.format(Date(f.atMillis)), style = Brand.Body.copy(fontFamily = Brand.Mono, fontSize = 13.sp, color = Brand.Ink3))
                         Spacer(Modifier.width(12.dp))

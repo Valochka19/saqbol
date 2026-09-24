@@ -57,7 +57,7 @@ import kotlinx.coroutines.launch
 /**
  * Нижнее меню в почерке SaqBol: плавающая карточка с жёсткой тенью, под активной вкладкой — красный штамп.
  * Штамп переезжает с пружинкой и «опускается» с наклоном, как печать, телефон отзывается вибрацией.
- * На вкладке «Защита» живая точка: зелёная и дышит, когда защита звонков включена, красная — когда выключена.
+ * На вкладке «Защита» фирменный квадратик: залит красным — защита звонков включена, пустая рамка — выключена.
  */
 @Composable
 fun NavBar(tabs: List<String>, selected: Int, guardOn: Boolean, onSelect: (Int) -> Unit) {
@@ -112,7 +112,7 @@ fun NavBar(tabs: List<String>, selected: Int, guardOn: Boolean, onSelect: (Int) 
                                     else -> bars(ink)
                                 }
                             }
-                            if (i == 1) GuardDot(guardOn, Modifier.align(Alignment.TopEnd).offset(x = 5.dp, y = (-3).dp))
+                            if (i == 1) GuardDot(guardOn, active, Modifier.align(Alignment.TopEnd).offset(x = 8.dp, y = (-4).dp))
                         }
                         Spacer(Modifier.height(4.dp))
                         Text(title.uppercase(), style = Brand.Label.copy(color = ink, fontSize = 11.sp, letterSpacing = 1.2.sp))
@@ -123,18 +123,15 @@ fun NavBar(tabs: List<String>, selected: Int, guardOn: Boolean, onSelect: (Int) 
     }
 }
 
-/** Живая точка защиты: включена — зелёная и «дышит», выключена — красная. */
+/**
+ * Метка защиты — фирменный квадратик: залит — защита включена, пустая рамка — выключена.
+ * На красном штампе активной вкладки он белый, на светлом фоне — красный: так его видно всегда.
+ */
 @Composable
-private fun GuardDot(on: Boolean, modifier: Modifier) {
-    val pulse = rememberInfiniteTransition(label = "guard")
-    val halo by pulse.animateFloat(1f, 2.3f, infiniteRepeatable(tween(1400), RepeatMode.Restart), label = "halo")
-    val haloAlpha by pulse.animateFloat(0.55f, 0f, infiniteRepeatable(tween(1400), RepeatMode.Restart), label = "halo-a")
-    val color = if (on) Color(0xFF2E9E57) else Brand.Signal
-    // светлое кольцо — чтобы красную точку было видно и на красном штампе
-    Box(modifier.size(13.dp), contentAlignment = Alignment.Center) {
-        if (on) Box(Modifier.size(11.dp).scale(halo).clip(CircleShape).background(color.copy(alpha = haloAlpha)))
-        Box(Modifier.size(13.dp).clip(CircleShape).background(Brand.Card).padding(2.dp).clip(CircleShape).background(color))
-    }
+private fun GuardDot(on: Boolean, onRed: Boolean, modifier: Modifier) {
+    val c = if (onRed) Brand.Card else Brand.Signal
+    val shape = RoundedCornerShape(1.5.dp)
+    Box(modifier.size(10.dp).rotate(-10f).clip(shape).background(if (on) c else Color.Transparent).border(2.dp, c, shape))
 }
 
 // Иконки рисуем сами — в том же толстом «чернильном» штрихе, что и обводки карточек

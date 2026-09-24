@@ -296,17 +296,15 @@ fun InfoLine(text: String, onDark: Boolean = false) {
     }
 }
 
-/** Живая точка: зелёная и «дышит», когда включено; красная — когда выключено. */
+/** Фирменный квадратик-метка статуса: включено — залит красным, выключено — пустая красная рамка. */
 @Composable
 fun LiveDot(on: Boolean, size: Int = 10) {
-    val pulse = rememberInfiniteTransition(label = "live")
-    val halo by pulse.animateFloat(1f, 2.4f, infiniteRepeatable(tween(1400), RepeatMode.Restart), label = "halo")
-    val haloA by pulse.animateFloat(0.55f, 0f, infiniteRepeatable(tween(1400), RepeatMode.Restart), label = "halo-a")
-    val color = if (on) Tone.Live else Brand.Signal
-    Box(Modifier.size(size.dp), contentAlignment = Alignment.Center) {
-        if (on) Box(Modifier.size(size.dp).scale(halo).clip(CircleShape).background(color.copy(alpha = haloA)))
-        Box(Modifier.size(size.dp).clip(CircleShape).background(color))
-    }
+    val shape = RoundedCornerShape(1.5.dp)
+    Box(
+        Modifier.size(size.dp).rotate(-10f).clip(shape)
+            .background(if (on) Brand.Signal else Color.Transparent)
+            .border(2.dp, Brand.Signal, shape),
+    )
 }
 
 /** Маленькая кнопка-метка внутри карточки: «Вставить», «Очистить». */
