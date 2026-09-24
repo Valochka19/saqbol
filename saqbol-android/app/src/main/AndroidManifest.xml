@@ -52,6 +52,15 @@
             </intent-filter>
         </service>
 
+        <!-- «Защита близких»: push родственнику, когда близкому звонит мошенник -->
+        <service android:name=".PushService" android:exported="false">
+            <intent-filter>
+                <action android:name="com.google.firebase.MESSAGING_EVENT" />
+            </intent-filter>
+        </service>
+        <meta-data android:name="com.google.firebase.messaging.default_notification_channel_id" android:value="family_alerts" />
+        <meta-data android:name="com.google.firebase.messaging.default_notification_icon" android:resource="@drawable/ic_stat_alert" />
+
         <!-- Кнопки «Это мошенники / Всё нормально» в уведомлении после звонка -->
         <receiver android:name=".AfterCallReceiver" android:exported="false" />
     </application>

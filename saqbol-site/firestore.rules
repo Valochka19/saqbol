@@ -31,8 +31,10 @@ service cloud.firestore {
         // «Защита близких»: код привязки, проверка привязки, сигнал «маме звонит мошенник»
         || (request.resource.data.keys().hasOnly(['family', 'created_at'])
           && request.resource.data.family is map
-          && request.resource.data.family.keys().hasOnly(['op', 'device', 'number', 'reporters', 'scheme'])
-          && request.resource.data.family.op in ['code', 'status', 'alert']
+          && request.resource.data.family.keys().hasOnly(['op', 'device', 'number', 'reporters', 'scheme', 'code', 'token'])
+          && request.resource.data.family.op in ['code', 'status', 'alert', 'join']
+          && (!('code' in request.resource.data.family) || (request.resource.data.family.code is string && request.resource.data.family.code.size() == 6))
+          && (!('token' in request.resource.data.family) || (request.resource.data.family.token is string && request.resource.data.family.token.size() <= 300))
           && request.resource.data.family.device is string
           && request.resource.data.family.device.size() >= 16 && request.resource.data.family.device.size() <= 64
           && (!('number' in request.resource.data.family) || (request.resource.data.family.number is string && request.resource.data.family.number.size() <= 40))

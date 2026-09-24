@@ -87,6 +87,12 @@ object Api {
     /** Сколько близких уже привязано к этому телефону. */
     suspend fun familyLinked(device: String): Int = ask("family", family("status", device), timeoutMs = 15_000).optInt("linked")
 
+    /** Телефон родственника вводит код с телефона мамы — и будет получать push, когда ей звонит мошенник. */
+    suspend fun familyJoin(code: String, device: String, pushToken: String) {
+        val extra = JSONObject().put("code", sv(code.take(6))).put("token", sv(pushToken.take(300)))
+        ask("family", family("join", device, extra), timeoutMs = 15_000)
+    }
+
     /** Маме звонит номер из базы — бот пишет привязанным близким. Возвращает, скольким отправлено. */
     suspend fun familyAlert(device: String, number: String, reporters: Int, scheme: String): Int {
         val extra = JSONObject().put("number", sv(number.take(40))).put("scheme", sv(scheme.take(60)))
@@ -169,7 +175,8 @@ object Api {
     fun errorText(code: String): String = when (code) {
         "timeout" -> "Сервис не ответил. Проверьте интернет и попробуйте ещё раз."
         "busy" -> "Слишком много запросов. Повторите через минуту."
-        "limit" -> "На сегодня достаточно: с одного телефона принимаем пять жалоб в сутки."
+        "bad_code" -> "Код не найден или устарел. Попросите получить новый на телефоне близкого."
+        "limit" ->"На сегодня достаточно: с одного телефона принимаем пять жалоб в сутки."
         "unrecognized" -> "Не вижу здесь номера телефона, карты или ссылки."
         "not_a_message" -> "Не вижу на картинке сообщения. Выберите скриншот переписки, SMS или чека."
         "network" -> "Нет связи с интернетом."

@@ -95,6 +95,8 @@ async def _family(f: dict) -> dict:
         return await family.new_code(device)
     if op == "status":
         return await family.status(device)
+    if op == "join":
+        return await family.join(str(f.get("code", "")), str(f.get("token", ""))[:300])
     if op == "alert":
         return await family.alert(device, str(f.get("number", ""))[:40],
                                   max(0, int(f.get("reporters", 0) or 0)), str(f.get("scheme", ""))[:60])

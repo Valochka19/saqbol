@@ -106,13 +106,13 @@ fun Cutout(modifier: Modifier = Modifier, fill: Color = Brand.Card, shadow: Dp =
 
 /** Большая кнопка под палец. */
 @Composable
-fun BigButton(text: String, modifier: Modifier = Modifier, fill: Color = Brand.Ink, enabled: Boolean = true, onClick: () -> Unit) {
+fun BigButton(text: String, modifier: Modifier = Modifier, fill: Color = Brand.Ink, enabled: Boolean = true, content: Color = Color.White, onClick: () -> Unit) {
     val shape = RoundedCornerShape(12.dp)
     Box(
         modifier.fillMaxWidth().clip(shape).background(if (enabled) fill else Brand.Ink3).clickable(enabled = enabled, onClick = onClick).padding(vertical = 17.dp),
         contentAlignment = Alignment.Center,
     ) {
-        Text(text.uppercase(), style = Brand.Label.copy(color = Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold))
+        Text(text.uppercase(), style = Brand.Label.copy(color = if (enabled) content else Color.White, fontSize = 13.sp, fontWeight = FontWeight.Bold))
     }
 }
 

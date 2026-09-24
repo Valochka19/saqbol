@@ -11,6 +11,9 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.compose.setContent
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,6 +68,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        Push.channel(this) // канал нужен заранее: push может прийти, когда приложение закрыто
         take(intent)
         setContent { App(shared, sharedImage) { shared = null; sharedImage = null } }
     }
@@ -434,40 +438,129 @@ private fun FamilyCard() {
         )
         code?.let { c ->
             Spacer(Modifier.height(14.dp))
-            Column(Modifier.fillMaxWidth().background(Brand.Paper, RoundedCornerShape(10.dp)).border(2.dp, Brand.Signal, RoundedCornerShape(10.dp)).padding(14.dp)) {
-                Text("КОД ДЛЯ РОДСТВЕННИКА", style = Brand.Label.copy(color = Brand.Signal))
-                Text(c.chunked(3).joinToString(" "), style = Brand.Number.copy(fontSize = 36.sp), modifier = Modifier.padding(vertical = 4.dp))
-                Text("Родственник открывает в Telegram бота @saqbolai_bot и отправляет:", style = Brand.Small)
-                Text("/family $c", style = Brand.Body.copy(fontFamily = Brand.Mono, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 4.dp))
-                Text("Код действует 30 минут.", style = Brand.Small, modifier = Modifier.padding(top = 6.dp))
+            val link = Family.link(c)
+            val qr = remember(c) { runCatching { Family.qr(link) }.getOrNull() }
+            Column(
+                Modifier.fillMaxWidth().background(Brand.Paper, RoundedCornerShape(10.dp)).border(2.dp, Brand.Signal, RoundedCornerShape(10.dp)).padding(14.dp),
+                horizontalAlignment = Alignment.CenterHorizontally,
+            ) {
+                Text("ПОКАЖИТЕ РОДСТВЕННИКУ", style = Brand.Label.copy(color = Brand.Signal))
+                qr?.let { Image(it.asImageBitmap(), contentDescription = "QR-код для привязки", modifier = Modifier.padding(vertical = 8.dp).size(200.dp)) }
+                Text("Наведите камеру телефона — откроется Telegram, останется нажать «Старт».", style = Brand.Small, textAlign = TextAlign.Center)
+                Text("или код  ${c.chunked(3).joinToString(" ")}", style = Brand.Number.copy(fontSize = 22.sp), modifier = Modifier.padding(top = 10.dp))
+                Text("Действует 30 минут, можно привязать несколько близких.", style = Brand.Small, textAlign = TextAlign.Center, modifier = Modifier.padding(top = 4.dp))
+            }
+            Spacer(Modifier.height(10.dp))
+            // на тёмной карточке (кто-то уже привязан) кнопка светлая, иначе сольётся с фоном
+            BigButton("Отправить ссылку родственнику", fill = if (n > 0) Brand.Paper else Brand.Ink, content = if (n > 0) Brand.Ink else Color.White) {
+                val text = "Привяжи мой телефон в SaqBol — если мне позвонит мошенник, ты сразу узнаешь: $link"
+                ctx.startActivity(Intent.createChooser(Intent(Intent.ACTION_SEND).setType("text/plain").putExtra(Intent.EXTRA_TEXT, text), "Отправить ссылку"))
             }
         }
         Spacer(Modifier.height(12.dp))
-        if (code == null) {
-            BigButton(if (busy) "Получаем код…" else if (n > 0) "Привязать ещё одного" else "Привязать близкого", fill = Brand.Signal, enabled = !busy) {
-                busy = true
-                note = null
-                scope.launch {
-                    runCatching { Api.familyCode(device) }
-                        .onSuccess { code = it }
-                        .onFailure { note = if (it is Api.ApiError) Api.errorText(it.code) else "Не получилось. Попробуйте ещё раз." }
-                    busy = false
-                }
-            }
-        } else {
-            BigButton(if (busy) "Проверяем…" else "Родственник отправил код", fill = Brand.Signal, enabled = !busy) {
-                busy = true
-                scope.launch {
-                    val before = n
-                    val now = runCatching { Api.familyLinked(device) }.getOrNull()
-                    if (now != null) linked = now
-                    if (now != null && now > before) { code = null; note = "Готово! Проверьте кнопкой «Показать пример» выше — родственнику придёт сообщение." }
-                    else note = "Пока не вижу привязки. Проверьте, что код отправлен боту @saqbolai_bot целиком."
-                    busy = false
-                }
+        fun newCode() {
+            busy = true
+            note = null
+            scope.launch {
+                runCatching { Api.familyCode(device) }
+                    .onSuccess { code = it }
+                    .onFailure { note = if (it is Api.ApiError) Api.errorText(it.code) else "Не получилось. Попробуйте ещё раз." }
+                busy = false
             }
         }
+        if (code == null) {
+            BigButton(if (busy) "Получаем код…" else if (n > 0) "Привязать ещё одного" else "Привязать близкого", fill = Brand.Signal, enabled = !busy) { newCode() }
+        } else {
+            BigButton(if (busy) "Проверяем…" else "Родственник ввёл код", fill = Brand.Signal, enabled = !busy) {
+                busy = true
+                scope.launch {
+                    val now = runCatching { Api.familyLinked(device) }.getOrNull()
+                    if (now != null) linked = now
+                    // засчитываем, если привязан хоть кто-то: тот же родственник мог привязаться повторно
+                    if (now != null && now > 0) { code = null; note = "Готово! Проверьте кнопкой «Показать пример» выше — родственнику придёт уведомление." }
+                    else note = "Пока не вижу привязки. Проверьте, что код введён целиком."
+                    busy = false
+                }
+            }
+            Spacer(Modifier.height(10.dp))
+            BigButton("Новый код", fill = if (n > 0) Brand.Paper else Brand.Ink2, content = if (n > 0) Brand.Ink else Color.White, enabled = !busy) { newCode() }
+        }
         note?.let { Text(it, style = Brand.Small.copy(color = if (n > 0) Brand.Hair else Brand.Ink2), modifier = Modifier.padding(top = 8.dp)) }
+    }
+    RelativeCard()
+}
+
+/** Телефон родственника: вводим код с телефона мамы — и сюда приходит push, когда ей звонит мошенник. */
+@Composable
+private fun RelativeCard() {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val prefs = remember { ctx.getSharedPreferences("saqbol", android.content.Context.MODE_PRIVATE) }
+    var joined by remember { mutableStateOf(prefs.getInt("family_joined", 0)) }
+    var open by remember { mutableStateOf(false) }
+    var input by remember { mutableStateOf("") }
+    var busy by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf<String?>(null) }
+    val askNotify = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {}
+
+    Cutout {
+        Text("Я РОДСТВЕННИК", style = Brand.Label)
+        Text(
+            if (joined > 0) "Этот телефон получает уведомления: близких — $joined. Когда им позвонит мошенник, вы узнаете сразу, даже если приложение закрыто."
+            else "У вас есть код с телефона мамы или бабушки? Введите его — и когда ей позвонит мошенник, уведомление придёт сюда.",
+            style = Brand.Body, modifier = Modifier.padding(top = 6.dp),
+        )
+        if (open) {
+            Spacer(Modifier.height(12.dp))
+            BasicTextField(
+                value = input, onValueChange = { input = it.filter(Char::isDigit).take(6) },
+                textStyle = Brand.Number.copy(fontSize = 30.sp),
+                cursorBrush = SolidColor(Brand.Signal),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth().border(2.dp, Brand.Ink, RoundedCornerShape(10.dp)).padding(12.dp),
+                decorationBox = { inner -> if (input.isEmpty()) Text("______", style = Brand.Number.copy(fontSize = 30.sp, color = Brand.Ink3)); inner() },
+            )
+        }
+        Spacer(Modifier.height(12.dp))
+        fun join(code: String) {
+            if (Build.VERSION.SDK_INT >= 33 && ctx.checkSelfPermission(Manifest.permission.POST_NOTIFICATIONS) != PackageManager.PERMISSION_GRANTED) {
+                askNotify.launch(Manifest.permission.POST_NOTIFICATIONS)
+            }
+            input = code
+            busy = true
+            note = null
+            scope.launch {
+                try {
+                    Api.familyJoin(code, CallGuard.deviceId(ctx), Push.token())
+                    joined += 1
+                    prefs.edit().putInt("family_joined", joined).apply()
+                    open = false
+                    input = ""
+                    note = "Готово. Когда близкому позвонит номер из базы, уведомление придёт на этот телефон."
+                } catch (e: Api.ApiError) {
+                    note = Api.errorText(e.code)
+                } catch (e: Exception) {
+                    note = "Не получилось подключить уведомления. Проверьте интернет и попробуйте ещё раз."
+                }
+                busy = false
+            }
+        }
+        // QR с телефона мамы: в нём ссылка на бота с кодом — берём из неё код и подключаем сразу
+        val scan = rememberLauncherForActivityResult(ScanContract()) { r ->
+            val c = r.contents?.let(Family::codeFrom)
+            if (c != null) join(c) else if (r.contents != null) note = "Это не QR-код SaqBol. Наведите камеру на код на телефоне близкого."
+        }
+        if (!open) {
+            BigButton(if (busy) "Подключаем…" else "Сканировать QR близкого", fill = Brand.Signal, enabled = !busy) {
+                scan.launch(ScanOptions().setDesiredBarcodeFormats(ScanOptions.QR_CODE).setBeepEnabled(false).setOrientationLocked(true)
+                    .setPrompt("Наведите камеру на QR-код на телефоне близкого"))
+            }
+            Spacer(Modifier.height(10.dp))
+            BigButton(if (joined > 0) "Ввести код ещё одного" else "Ввести код вручную", fill = Brand.Ink, enabled = !busy) { open = true; note = null }
+        } else {
+            BigButton(if (busy) "Подключаем…" else "Подключить", fill = Brand.Signal, enabled = !busy && input.length == 6) { join(input) }
+        }
+        note?.let { Text(it, style = Brand.Small, modifier = Modifier.padding(top = 8.dp)) }
     }
 }
 

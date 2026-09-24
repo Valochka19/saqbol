@@ -37,3 +37,6 @@ CONTEXT.md
 
 # Сборки приложения — только по ссылке, не в репо
 *.apk
+
+# Настройки Firebase для приложения (содержат ключ) — брать из консоли Firebase
+saqbol-android/app/google-services.json
