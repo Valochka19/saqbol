@@ -76,6 +76,24 @@ object Api {
         return Reported(r.optString("value"), r.optInt("reporters"), r.optInt("risk"))
     }
 
+    // ── «Защита близких» ──
+    private fun sv(v: String) = JSONObject().put("stringValue", v)
+    private fun family(op: String, device: String, extra: JSONObject = JSONObject()) =
+        JSONObject().put("mapValue", JSONObject().put("fields", extra.put("op", sv(op)).put("device", sv(device))))
+
+    /** Код из 6 цифр: родственник отправляет его боту — /family 123456. */
+    suspend fun familyCode(device: String): String = ask("family", family("code", device), timeoutMs = 15_000).optString("code")
+
+    /** Сколько близких уже привязано к этому телефону. */
+    suspend fun familyLinked(device: String): Int = ask("family", family("status", device), timeoutMs = 15_000).optInt("linked")
+
+    /** Маме звонит номер из базы — бот пишет привязанным близким. Возвращает, скольким отправлено. */
+    suspend fun familyAlert(device: String, number: String, reporters: Int, scheme: String): Int {
+        val extra = JSONObject().put("number", sv(number.take(40))).put("scheme", sv(scheme.take(60)))
+            .put("reporters", JSONObject().put("integerValue", reporters.toString()))
+        return ask("family", family("alert", device, extra), timeoutMs = 15_000).optInt("sent")
+    }
+
     private suspend fun ask(field: String, value: String, timeoutMs: Long): JSONObject =
         ask(field, JSONObject().put("stringValue", value), timeoutMs)
 

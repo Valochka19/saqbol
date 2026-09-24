@@ -28,6 +28,16 @@ service cloud.firestore {
           && request.resource.data.report.number is string && request.resource.data.report.number.size() <= 40
           && request.resource.data.report.device is string
           && request.resource.data.report.device.size() >= 16 && request.resource.data.report.device.size() <= 64)
+        // «Защита близких»: код привязки, проверка привязки, сигнал «маме звонит мошенник»
+        || (request.resource.data.keys().hasOnly(['family', 'created_at'])
+          && request.resource.data.family is map
+          && request.resource.data.family.keys().hasOnly(['op', 'device', 'number', 'reporters', 'scheme'])
+          && request.resource.data.family.op in ['code', 'status', 'alert']
+          && request.resource.data.family.device is string
+          && request.resource.data.family.device.size() >= 16 && request.resource.data.family.device.size() <= 64
+          && (!('number' in request.resource.data.family) || (request.resource.data.family.number is string && request.resource.data.family.number.size() <= 40))
+          && (!('scheme' in request.resource.data.family) || (request.resource.data.family.scheme is string && request.resource.data.family.scheme.size() <= 60))
+          && (!('reporters' in request.resource.data.family) || request.resource.data.family.reporters is int))
         // заявка на сертификат: имя и результаты тренажёра
         || (request.resource.data.keys().hasOnly(['cert', 'created_at'])
           && request.resource.data.cert is map

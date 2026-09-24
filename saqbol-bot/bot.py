@@ -19,7 +19,7 @@ from aiogram.enums import ChatAction, ParseMode  # noqa: E402
 from aiogram.filters import Command, CommandStart  # noqa: E402
 from aiogram.types import Message  # noqa: E402
 
-from saqbol import chat_features, indicators, llm, store, webqueue  # noqa: E402
+from saqbol import chat_features, family, indicators, llm, store, webqueue  # noqa: E402
 from saqbol.analyzer import NotAMessage, Verdict, analyze, analyze_audio, analyze_image  # noqa: E402
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
@@ -251,6 +251,7 @@ async def main() -> None:
         asyncio.get_running_loop().create_task(beat())
 
     bot = Bot(token, default=DefaultBotProperties(parse_mode=ParseMode.HTML))
+    family.set_bot(bot)  # чтобы писать родственникам, когда маме звонит мошенник
 
     admin_chat = os.getenv("SAQBOL_ADMIN_CHAT")
     if store.is_configured():
@@ -263,6 +264,7 @@ async def main() -> None:
 
         webqueue.start_leads(asyncio.get_running_loop(), notify_owner)
     log.info("SaqBol AI запущен, модель: %s", llm.MODEL if llm.is_configured() else "нет (только правила)")
+    dp.include_router(family.router)
     dp.include_router(chat_features.router)
     dp.include_router(common)
     await dp.start_polling(bot)

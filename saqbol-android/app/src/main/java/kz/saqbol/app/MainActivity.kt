@@ -373,7 +373,12 @@ private fun GuardScreen() {
                 note = null
                 scope.launch {
                     val hit = runCatching { Api.lookup("8 705 111 22 33") }.getOrNull()?.firstOrNull { it.found }
-                    if (hit != null) CallGuard.alert(ctx, hit) else note = "Не удалось связаться с базой. Проверьте интернет."
+                    if (hit != null) {
+                        CallGuard.alert(ctx, hit)
+                        // как при настоящем звонке: привязанные близкие получают сообщение в Telegram
+                        val sent = runCatching { Api.familyAlert(CallGuard.deviceId(ctx), hit.value, hit.reporters, Brand.category(hit.category)) }.getOrDefault(0)
+                        if (sent > 0) note = "Близким отправлено сообщение в Telegram."
+                    } else note = "Не удалось связаться с базой. Проверьте интернет."
                     demoBusy = false
                 }
             }
@@ -392,7 +397,77 @@ private fun GuardScreen() {
             note2?.let { Text(it, style = Brand.Small, modifier = Modifier.padding(top = 8.dp)) }
         }
 
+        FamilyCard()
+
         Text("Мы не блокируем звонки и не слушаем разговоры. Проверяется только номер, и только если его нет в ваших контактах.", style = Brand.Small)
+    }
+}
+
+/**
+ * «Защита близких»: телефон мамы привязывается к Telegram родственника без регистрации.
+ * Если маме позвонит номер из базы, бот сразу напишет родственнику.
+ */
+@Composable
+private fun FamilyCard() {
+    val ctx = LocalContext.current
+    val scope = rememberCoroutineScope()
+    val device = remember { CallGuard.deviceId(ctx) }
+    var linked by remember { mutableStateOf<Int?>(null) }
+    var code by remember { mutableStateOf<String?>(null) }
+    var busy by remember { mutableStateOf(false) }
+    var note by remember { mutableStateOf<String?>(null) }
+
+    fun refresh() = scope.launch { runCatching { Api.familyLinked(device) }.onSuccess { linked = it } }
+    LaunchedEffect(Unit) { refresh() }
+
+    val n = linked ?: 0
+    Cutout(fill = if (n > 0) Brand.Ink else Brand.Card) {
+        Text("ЗАЩИТА БЛИЗКИХ", style = Brand.Label.copy(color = if (n > 0) Brand.Hair else Brand.Signal))
+        Text(
+            if (n > 0) "Привязано: ${Brand.people(n)}" else "Предупредим родных",
+            style = Brand.Heading.copy(color = if (n > 0) Brand.Paper else Brand.Ink), modifier = Modifier.padding(top = 4.dp),
+        )
+        Text(
+            "Поставьте SaqBol маме или бабушке. Если на её телефон позвонит номер, на который жаловались, " +
+                "вам сразу придёт сообщение в Telegram — чтобы вы успели позвонить и остановить разговор.",
+            style = Brand.Body.copy(color = if (n > 0) Brand.Hair else Brand.Ink), modifier = Modifier.padding(top = 6.dp),
+        )
+        code?.let { c ->
+            Spacer(Modifier.height(14.dp))
+            Column(Modifier.fillMaxWidth().background(Brand.Paper, RoundedCornerShape(10.dp)).border(2.dp, Brand.Signal, RoundedCornerShape(10.dp)).padding(14.dp)) {
+                Text("КОД ДЛЯ РОДСТВЕННИКА", style = Brand.Label.copy(color = Brand.Signal))
+                Text(c.chunked(3).joinToString(" "), style = Brand.Number.copy(fontSize = 36.sp), modifier = Modifier.padding(vertical = 4.dp))
+                Text("Родственник открывает в Telegram бота @saqbolai_bot и отправляет:", style = Brand.Small)
+                Text("/family $c", style = Brand.Body.copy(fontFamily = Brand.Mono, fontWeight = FontWeight.Bold), modifier = Modifier.padding(top = 4.dp))
+                Text("Код действует 30 минут.", style = Brand.Small, modifier = Modifier.padding(top = 6.dp))
+            }
+        }
+        Spacer(Modifier.height(12.dp))
+        if (code == null) {
+            BigButton(if (busy) "Получаем код…" else if (n > 0) "Привязать ещё одного" else "Привязать близкого", fill = Brand.Signal, enabled = !busy) {
+                busy = true
+                note = null
+                scope.launch {
+                    runCatching { Api.familyCode(device) }
+                        .onSuccess { code = it }
+                        .onFailure { note = if (it is Api.ApiError) Api.errorText(it.code) else "Не получилось. Попробуйте ещё раз." }
+                    busy = false
+                }
+            }
+        } else {
+            BigButton(if (busy) "Проверяем…" else "Родственник отправил код", fill = Brand.Signal, enabled = !busy) {
+                busy = true
+                scope.launch {
+                    val before = n
+                    val now = runCatching { Api.familyLinked(device) }.getOrNull()
+                    if (now != null) linked = now
+                    if (now != null && now > before) { code = null; note = "Готово! Проверьте кнопкой «Показать пример» выше — родственнику придёт сообщение." }
+                    else note = "Пока не вижу привязки. Проверьте, что код отправлен боту @saqbolai_bot целиком."
+                    busy = false
+                }
+            }
+        }
+        note?.let { Text(it, style = Brand.Small.copy(color = if (n > 0) Brand.Hair else Brand.Ink2), modifier = Modifier.padding(top = 8.dp)) }
     }
 }
 

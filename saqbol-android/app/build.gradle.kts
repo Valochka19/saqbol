@@ -12,8 +12,8 @@ android {
         applicationId = "kz.saqbol.app"
         minSdk = 29 // проверка входящих звонков (CallScreeningService + роль) есть с Android 10
         targetSdk = 36
-        versionCode = 2
-        versionName = "0.2"
+        versionCode = 3
+        versionName = "0.3"
     }
 
     buildTypes {

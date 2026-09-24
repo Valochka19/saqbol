@@ -83,6 +83,24 @@ async def _report(rep: dict) -> dict:
             "risk": store.risk_score(reporters, now, category, s.status)}
 
 
+async def _family(f: dict) -> dict:
+    """«Защита близких»: код привязки, число привязанных близких, сигнал «маме звонит мошенник»."""
+    from . import family
+
+    device = str(f.get("device", ""))
+    op = f.get("op")
+    if len(device) < 16:
+        return {"created_at": datetime.now(timezone.utc), "error": "unrecognized"}
+    if op == "code":
+        return await family.new_code(device)
+    if op == "status":
+        return await family.status(device)
+    if op == "alert":
+        return await family.alert(device, str(f.get("number", ""))[:40],
+                                  max(0, int(f.get("reporters", 0) or 0)), str(f.get("scheme", ""))[:60])
+    return {"created_at": datetime.now(timezone.utc), "error": "failed"}
+
+
 TOTAL_CASES = 40
 HARD_CASES = 20
 CERT_MIN_CASES = 24  # верно разобрать не меньше 24 кейсов из 40
@@ -141,6 +159,9 @@ async def _handle(doc_id: str, data: dict) -> None:
             return
         if "report" in data:
             await result_ref.set(await _report(data["report"] if isinstance(data["report"], dict) else {}))
+            return
+        if "family" in data:
+            await result_ref.set(await _family(data["family"] if isinstance(data["family"], dict) else {}))
             return
         if "cert" in data:
             await result_ref.set(await _certificate(data["cert"]))

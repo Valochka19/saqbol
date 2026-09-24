@@ -49,6 +49,8 @@ class ScamCallScreeningService : CallScreeningService() {
         scope.launch {
             val hit = runCatching { Api.lookup(number, timeoutMs = 8_000) }.getOrNull()?.firstOrNull { it.found } ?: return@launch
             CallGuard.alert(app, hit)
+            // «Защита близких»: если к телефону привязан родственник — бот сразу напишет ему в Telegram
+            runCatching { Api.familyAlert(CallGuard.deviceId(app), hit.value, hit.reporters, Brand.category(hit.category)) }
         }
     }
 }
