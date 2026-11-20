@@ -2,133 +2,137 @@
   <img src="saqbol-site/public/icon-192.png" width="96" alt="SaqBol">
 </p>
 
-<h1 align="center">SaqBol — будь осторожен</h1>
+<h1 align="center">SaqBol — be careful</h1>
 
 <p align="center">
-  <b>Народная сеть датчиков мошенничества для Казахстана.</b><br>
-  Один человек засомневался — предупреждены все.
+  <b>A crowd-powered scam detection network for Kazakhstan.</b><br>
+  One person has a doubt, everyone gets warned.
 </p>
 
 <p align="center">
-  <a href="https://saqbol-ai-kz.web.app"><img src="https://img.shields.io/badge/сайт-saqbol--ai--kz.web.app-c8321a?style=flat-square" alt="сайт"></a>
-  <a href="https://t.me/saqbolai_bot"><img src="https://img.shields.io/badge/Telegram-@saqbolai__bot-141311?style=flat-square" alt="бот"></a>
+  <a href="https://saqbol-ai-kz.web.app"><img src="https://img.shields.io/badge/website-saqbol--ai--kz.web.app-c8321a?style=flat-square" alt="website"></a>
+  <a href="https://t.me/saqbolai_bot"><img src="https://img.shields.io/badge/Telegram-@saqbolai__bot-141311?style=flat-square" alt="bot"></a>
   <img src="https://img.shields.io/badge/Android-10%2B-141311?style=flat-square" alt="Android 10+">
-  <img src="https://img.shields.io/badge/точность-98.9%25-c8321a?style=flat-square" alt="точность 98,9 %">
-  <img src="https://img.shields.io/badge/пропущено%20мошеннических-0%20из%2045-c8321a?style=flat-square" alt="полнота 100 %">
+  <img src="https://img.shields.io/badge/accuracy-98.9%25-c8321a?style=flat-square" alt="accuracy 98.9%">
+  <img src="https://img.shields.io/badge/scams%20missed-0%20of%2045-c8321a?style=flat-square" alt="recall 100%">
 </p>
 
 <p align="center">
-  <img src="docs/screens/site-home.png" width="720" alt="Главная страница: проверка сообщения">
+  <a href="README.ru.md">Русская версия</a>
 </p>
 
-Человек пересылает подозрительное сообщение, скриншот, голосовое или QR-код — и за несколько секунд получает ответ простыми словами: мошенники это или нет, какая схема, по каким признакам видно и что делать. Номера, карты, ссылки и аккаунты из мошеннических сообщений попадают в **общую базу**. Следующий, кому придёт тот же номер, увидит «на него уже жаловались N человек», а банк может сверить получателя перевода с базой **до списания денег**.
+<p align="center">
+  <img src="docs/screens/site-home.png" width="720" alt="Home page: checking a message">
+</p>
 
-## Почему это нужно
+A person forwards a suspicious message, screenshot, voice message or QR code and within seconds gets a plain-language answer: is it a scam, which scheme it is, which signs give it away and what to do. Phone numbers, cards, links and accounts from scam messages go into a **shared database**. The next person who receives the same number sees "N people have already reported it", and a bank can check a transfer recipient against the database **before the money leaves**.
 
-- **26,3 тыс.** интернет-мошенничеств за январь–ноябрь 2025 года — в 3,4 раза больше, чем в 2019-м. Ущерб **11,2 млрд ₸**, из них **96,7 %** — деньги обычных людей ([Генпрокуратура РК](https://informburo.kz/novosti/rekordnoe-kolicestvo-skolko-slucaev-mosennicestva-v-seti-zaregistrirovali-v-kazaxstane-v-2025-godu)).
-- Банк узнаёт о мошеннике **после** перевода и только если пострадавший заявил. Заявляет лишь **каждый пятый**.
-- Антифрод-центр Нацбанка за всё время работы заблокировал 2,8 млрд ₸ ([Нацбанк РК](https://nationalbank.kz/ru/news/informacionnye-soobshcheniya/18571)) — он видит операцию, когда перевод уже идёт.
+## Why it matters
 
-**SaqBol собирает сигнал раньше всех — в момент, когда человек только сомневается.** Мы не конкурент Антифрод-центру, а ранний датчик для него. Все цифры с источниками — в [`docs/A6-cifry-kz.md`](docs/A6-cifry-kz.md).
+- **26.3 thousand** online fraud cases in Kazakhstan in January–November 2025, 3.4 times more than in 2019. Losses of **11.2 billion ₸**, **96.7%** of it from ordinary people ([Prosecutor General's Office of Kazakhstan](https://informburo.kz/novosti/rekordnoe-kolicestvo-skolko-slucaev-mosennicestva-v-seti-zaregistrirovali-v-kazaxstane-v-2025-godu)).
+- A bank learns about a scammer **after** the transfer, and only if the victim reports it. Only **one in five** does.
+- The National Bank's Anti-Fraud Center has blocked 2.8 billion ₸ over its whole lifetime ([National Bank of Kazakhstan](https://nationalbank.kz/ru/news/informacionnye-soobshcheniya/18571)). It sees the transaction when the transfer is already happening.
 
-## Три входа в одну сеть
+**SaqBol catches the signal earlier than anyone, at the moment a person is only starting to doubt.** It is not a competitor to the Anti-Fraud Center but an early sensor for it. All figures with sources are in [`docs/A6-cifry-kz.md`](docs/A6-cifry-kz.md) (in Russian).
 
-| Telegram-бот | Сайт | Android-приложение |
+## Three entry points into one network
+
+| Telegram bot | Website | Android app |
 |---|---|---|
-| Проверить и сообщить | Научиться и показать банку | Защита в момент звонка |
-| Текст, скриншоты, **голосовые**, проверка номера, тренажёр, «разговор с мошенником», памятка | Проверка сообщения и получателя, тренажёр, сертификат, памятка для родителей, мониторинг, **Демо-банк**, тарифы | **Предупреждение поверх экрана звонка**, **«Защита близких»** — родственник получает сообщение в Telegram, когда маме звонит номер из базы, «Кто звонил?» после звонка, «Поделиться → SaqBol», **сканер QR-кода** |
+| Check and report | Learn and show the bank | Protection at the moment of the call |
+| Text, screenshots, **voice messages**, number lookup, trainer, "talk to a scammer" simulator, guide for parents | Message and recipient check, trainer, certificate, guide for parents, monitoring, **Demo bank**, pricing | **Warning over the incoming call screen**, **"Protect your family"**: a relative gets a Telegram message when a number from the database calls mom, "Who called?" after the call, "Share → SaqBol", **QR code scanner** |
 
 <p align="center">
-  <img src="docs/screens/app-call-warning.png" width="230" alt="Предупреждение во время звонка">
+  <img src="docs/screens/app-call-warning.png" width="230" alt="Warning during a call">
   &nbsp;&nbsp;
-  <img src="docs/screens/site-mobile.png" width="230" alt="Сайт на телефоне">
+  <img src="docs/screens/site-mobile.png" width="230" alt="Website on a phone">
 </p>
 
-### Один перевод — две концовки
+### One transfer, two endings
 
-Макет банка для жюри и антифрод-служб: слева перевод уходит мошеннику, справа тот же банк спрашивает SaqBol и останавливает платёж.
+A bank mockup for the jury and anti-fraud teams: on the left the transfer goes to the scammer, on the right the same bank asks SaqBol and stops the payment.
 
 <p align="center">
-  <img src="docs/screens/site-demo-bank.png" width="720" alt="Демо-банк">
+  <img src="docs/screens/site-demo-bank.png" width="720" alt="Demo bank">
 </p>
 
-### Что рассылают прямо сейчас
+### What scammers are sending right now
 
-Экран антифрод-службы: обновляется сам после каждой проверки, показывает схемы недели и базу с риск-скорингом.
+An anti-fraud team screen: it updates itself after every check and shows the schemes of the week and the database with risk scoring.
 
 <p align="center">
-  <img src="docs/screens/site-monitor.png" width="720" alt="Мониторинг">
+  <img src="docs/screens/site-monitor.png" width="720" alt="Monitoring">
 </p>
 
-## Как это работает
+## How it works
 
 ```
- сообщение · скриншот · голосовое · QR          звонок с незнакомого номера
+ message · screenshot · voice · QR              call from an unknown number
               │                                            │
    ┌──────────▼──────────┐                      ┌──────────▼───────────┐
-   │ 1. Правила          │  без сети, мгновенно │ сверка номера с базой│
-   │ 13 признаков RU/KZ, │                      │ → плашка поверх      │
-   │ 24 домена банков,   │                      │   экрана звонка      │
-   │ похожие адреса      │                      └──────────┬───────────┘
-   └──────────┬──────────┘                                 │
-   ┌──────────▼──────────┐                      «Это мошенники» — одно нажатие
-   │ 2. Языковая модель  │  смысл, а не слова              │
-   │ вердикт, схема,     │                                 │
-   │ признаки, совет     │                                 │
+   │ 1. Rules            │  offline, instant    │ number checked       │
+   │ 13 signs RU/KZ,     │                      │ against the database │
+   │ 24 bank domains,    │                      │ → banner over the    │
+   │ lookalike addresses │                      │   call screen        │
+   └──────────┬──────────┘                      └──────────┬───────────┘
+   ┌──────────▼──────────┐                      "It's a scam": one tap
+   │ 2. Language model   │  meaning, not words             │
+   │ verdict, scheme,    │                                 │
+   │ signs, advice       │                                 │
    └──────────┬──────────┘                                 │
               ▼                                            ▼
         ┌─────────────────────────────────────────────────────────┐
-        │  ОБЩАЯ БАЗА: телефоны, карты, ссылки, @аккаунты          │
-        │  риск 1–99 по числу независимых заявителей и давности    │
+        │  SHARED DATABASE: phones, cards, links, @accounts        │
+        │  risk 1–99 by number of independent reporters and age    │
         └───────────────┬───────────────────────┬─────────────────┘
                         ▼                       ▼
-              человеку: «уже жаловались   банку: проверка получателя
-              N человек»                  до перевода
+              to the person: "already      to the bank: recipient
+              reported by N people"        check before the transfer
 ```
 
-- **Два слоя.** Правила ловят поддельные домены банков и типовые формулировки, модель понимает смысл. Страховка: сообщение с поддельным адресом банка не может получить «безопасно», что бы ни ответила модель. Без ключа модели всё работает на правилах.
-- **Объяснимо.** Человек видит признаки словами, аналитик банка — формулу риска: 1 заявитель → 30, 2 → 50, 3 → 65, 10 → 97; вес жалоб падает вдвое за 30 дней.
-- **Защита от накрутки.** Заявители считаются по обезличенному коду, повторная жалоба счётчик не растит, с одного устройства — не больше 5 жалоб в сутки. Одна жалоба — только предупреждение.
-- **Данные.** Тексты сообщений, скриншоты и голосовые не хранятся — запрос удаляется сразу после ответа. Наружу уходят только агрегаты и замаскированные номера. Правила доступа к базе открыты: [`saqbol-site/firestore.rules`](saqbol-site/firestore.rules).
+- **Two layers.** Rules catch fake bank domains and typical phrasing, the model understands meaning. Safety net: a message with a fake bank address can never be marked "safe", whatever the model says. Without a model key everything still works on rules.
+- **Explainable.** The person sees the signs in plain words, a bank analyst sees the risk formula: 1 reporter → 30, 2 → 50, 3 → 65, 10 → 97; a report's weight halves every 30 days.
+- **Protection from abuse.** Reporters are counted by an anonymized code, a repeated report does not increase the counter, and one device can file at most 5 reports a day. A single report only produces a warning.
+- **Data.** Message texts, screenshots and voice messages are not stored: the request is deleted right after the answer. Only aggregates and masked numbers leave the system. Database access rules are public: [`saqbol-site/firestore.rules`](saqbol-site/firestore.rules).
 
-## Метрики
+## Metrics
 
-90 размеченных сообщений на русском и казахском: 45 мошеннических, 45 обычных, 30 намеренно трудных. Датасет — [`saqbol-bot/eval/dataset.jsonl`](saqbol-bot/eval/dataset.jsonl), воспроизведение — `python eval/run_eval.py --llm`.
+90 labeled messages in Russian and Kazakh: 45 scams, 45 normal ones, 30 of them deliberately tricky. Dataset: [`saqbol-bot/eval/dataset.jsonl`](saqbol-bot/eval/dataset.jsonl), to reproduce: `python eval/run_eval.py --llm`.
 
-| Режим | Accuracy | Precision | Recall | F1 | Пропущено мошеннических | Трудные кейсы |
+| Mode | Accuracy | Precision | Recall | F1 | Scams missed | Tricky cases |
 |---|---|---|---|---|---|---|
-| Только правила | 0.811 | 0.818 | 0.800 | 0.809 | 9 из 45 | 18 из 30 |
-| Правила + модель | **0.989** | 0.978 | **1.000** | **0.989** | **0 из 45** | 29 из 30 |
+| Rules only | 0.811 | 0.818 | 0.800 | 0.809 | 9 of 45 | 18 of 30 |
+| Rules + model | **0.989** | 0.978 | **1.000** | **0.989** | **0 of 45** | 29 of 30 |
 
-Единственная ошибка — ложная тревога на «можешь занять 5000». Для защиты денег это правильная сторона ошибки. Честная оговорка: набор составлен авторами по реальным схемам, следующий шаг — проверка на потоке банка-партнёра.
+The only error is a false alarm on "can you lend me 5000". For protecting money, that is the right side to err on. Honest caveat: the set was written by the authors based on real schemes; the next step is testing on a partner bank's live traffic.
 
-## Устройство репозитория
+## Repository layout
 
 ```
-saqbol-bot/      Python 3.14 · aiogram · Telegram-бот и вся серверная логика
-  saqbol/rules.py         слой 1 — правила, работает без сети
-  saqbol/llm.py           слой 2 — языковая модель (Gemini, Claude как запасной)
-  saqbol/analyzer.py      склейка слоёв в один вердикт
-  saqbol/indicators.py    телефоны, карты (Luhn), домены, @аккаунты
-  saqbol/store.py         общая база в Firestore, риск-скоринг, сводка
-  saqbol/webqueue.py      очередь запросов с сайта и приложения
-  saqbol/simulator.py     «Разговор с мошенником»
-  saqbol/chat_features.py тренажёр, памятка, проверка номера в Telegram
-  eval/                   датасет и скрипт метрик
-saqbol-site/     Next.js 16 · TypeScript · Tailwind — статический экспорт на Firebase Hosting
-saqbol-android/  Kotlin · Jetpack Compose — определитель звонков, «Поделиться», сканер QR
-docs/            цифры по Казахстану с источниками, материалы заявки, скриншоты, тестовые QR
+saqbol-bot/      Python 3.14 · aiogram · Telegram bot and all server-side logic
+  saqbol/rules.py         layer 1: rules, works offline
+  saqbol/llm.py           layer 2: language model (Gemini, Claude as fallback)
+  saqbol/analyzer.py      combines both layers into one verdict
+  saqbol/indicators.py    phones, cards (Luhn), domains, @accounts
+  saqbol/store.py         shared database in Firestore, risk scoring, summary
+  saqbol/webqueue.py      request queue from the website and the app
+  saqbol/simulator.py     "Talk to a scammer"
+  saqbol/chat_features.py trainer, guide, number lookup in Telegram
+  eval/                   dataset and metrics script
+saqbol-site/     Next.js 16 · TypeScript · Tailwind, static export on Firebase Hosting
+saqbol-android/  Kotlin · Jetpack Compose: caller ID, "Share", QR scanner
+docs/            Kazakhstan figures with sources, application materials, screenshots, test QR codes
 ```
 
-Отдельного бэкенда у сайта и приложения нет: они кладут запрос в очередь Firestore, бот обрабатывает его и пишет ответ под тем же id. Одна проверка обходится примерно в 1 ₸; расход на модель за всю разработку — меньше одного цента.
+The website and the app have no separate backend: they put a request into a Firestore queue, the bot processes it and writes the answer under the same id. One check costs about 1 ₸; model spending over the whole development was under one cent.
 
-## Запуск
+## Running it
 
 ```
 cd saqbol-bot
 python -m venv .venv && .venv\Scripts\pip install -r requirements.txt
-copy .env.example .env         # TELEGRAM_BOT_TOKEN и GEMINI_API_KEY
-# firebase-key.json — ключ сервис-аккаунта Firebase, положить рядом с bot.py
+copy .env.example .env         # TELEGRAM_BOT_TOKEN and GEMINI_API_KEY
+# firebase-key.json: Firebase service account key, put it next to bot.py
 .venv\Scripts\python bot.py
 ```
 
@@ -137,12 +141,12 @@ cd saqbol-site && npm install && npm run dev            # http://localhost:3000
 npx next build && npx firebase-tools deploy --only hosting
 ```
 
-Приложение: открыть `saqbol-android` в Android Studio или `./gradlew assembleDebug` (JDK 21).
+App: open `saqbol-android` in Android Studio or run `./gradlew assembleDebug` (JDK 21).
 
-## План развития
+## Roadmap
 
-| Этап | Что |
+| Stage | What |
 |---|---|
-| **Сейчас — TRL 4** | Работающий прототип: бот, сайт, приложение, Демо-банк, метрики на тестовом наборе |
-| **3 месяца — TRL 5** | Пилот с одним банком, 1 000 живых пользователей, казахский интерфейс сайта |
-| **6–12 месяцев — TRL 6–7** | Подключение к антифрод-системе банка, обмен данными с Антифрод-центром, ранний сигнал о новой схеме по всплеску похожих сообщений |
+| **Now: TRL 4** | Working prototype: bot, website, app, Demo bank, metrics on the test set |
+| **3 months: TRL 5** | Pilot with one bank, 1,000 real users, Kazakh website interface |
+| **6–12 months: TRL 6–7** | Integration with a bank's anti-fraud system, data exchange with the Anti-Fraud Center, early signal about a new scheme from a spike of similar messages |
